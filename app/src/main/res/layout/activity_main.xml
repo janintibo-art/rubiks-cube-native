@@ -123,36 +123,47 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <Button
-            android:id="@+id/btnUndo"
-            android:layout_width="150dp"
-            android:layout_height="52dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/btn_neon"
-            android:textColor="#EAEAFF"
-            android:text="↩ Annuler"
-            android:textAllCaps="false"
-            android:textSize="15sp" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btnScramble"
-            android:layout_width="150dp"
-            android:layout_height="52dp"
-            android:background="@drawable/btn_neon"
-            android:textColor="#EAEAFF"
-            android:text="🔀 Mélanger"
-            android:textAllCaps="false"
-            android:textSize="15sp" />
+            <Button
+                android:id="@+id/btnUndo"
+                android:layout_width="98dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/btn_neon"
+                android:textColor="#EAEAFF"
+                android:text="↩ Annuler"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp" />
+
+            <Button
+                android:id="@+id/btnScramble"
+                android:layout_width="112dp"
+                android:layout_height="48dp"
+                android:background="@drawable/btn_neon"
+                android:textColor="#EAEAFF"
+                android:text="🔀 Mélanger"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnReset"
-            android:layout_width="150dp"
-            android:layout_height="52dp"
-            android:layout_marginTop="10dp"
+            android:layout_width="218dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
             android:background="@drawable/btn_neon"
             android:textColor="#EAEAFF"
             android:text="↺ Réinitialiser"
             android:textAllCaps="false"
-            android:textSize="15sp" />
+            android:textSize="14sp" />
+    </LinearLayout>
     </LinearLayout>
 </FrameLayout>

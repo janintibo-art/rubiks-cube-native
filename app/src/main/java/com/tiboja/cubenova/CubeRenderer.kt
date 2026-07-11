@@ -202,7 +202,8 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, width, height)
         val ratio = width.toFloat() / height.toFloat()
         Matrix.perspectiveM(projection, 0, 45f, ratio, 1f, 100f)
-        Matrix.setLookAtM(view, 0, 0f, 0f, 9f, 0f, 0f, 0f, 0f, 1f, 0f)
+        // Caméra un peu reculée et cube légèrement remonté : dégage les commandes du bas
+        Matrix.setLookAtM(view, 0, 0f, -0.35f, 10.5f, 0f, -0.35f, 0f, 0f, 1f, 0f)
     }
 
     private fun loadAtlas(asset: String) {
