@@ -76,6 +76,12 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.miLeaderboard).setOnClickListener { closeMenu(); showLeaderboard() }
         findViewById<Button>(R.id.miAchievements).setOnClickListener { closeMenu(); showAchievements() }
         findViewById<Button>(R.id.miSettings).setOnClickListener { closeMenu(); showSettings() }
+        findViewById<Button>(R.id.miGraphics).setOnClickListener {
+            closeMenu(); GraphicsDialog.show(this, glView.renderer)
+        }
+
+        // Réglages graphiques persistés
+        Stats.applyGfx(this, glView.renderer)
 
         // Actions
         btnUndo = findViewById(R.id.btnUndo)

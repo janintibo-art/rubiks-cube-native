@@ -39,9 +39,44 @@ class CubeGLSurfaceView @JvmOverloads constructor(
 
     init {
         setEGLContextClientVersion(2)
+        // Anti-crénelage (bords lisses) : MSAA 4x si dispo, sinon 2x, sinon sans.
+        setEGLConfigChooser(MultisampleConfigChooser())
         renderer = CubeRenderer(context)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
+    }
+
+    /** Choisit une config EGL avec MSAA 4x si disponible, sinon 2x, sinon sans. */
+    private class MultisampleConfigChooser : GLSurfaceView.EGLConfigChooser {
+        override fun chooseConfig(
+            egl: javax.microedition.khronos.egl.EGL10,
+            display: javax.microedition.khronos.egl.EGLDisplay
+        ): javax.microedition.khronos.egl.EGLConfig {
+            for (samples in intArrayOf(4, 2, 0)) {
+                val base = mutableListOf(
+                    javax.microedition.khronos.egl.EGL10.EGL_RED_SIZE, 8,
+                    javax.microedition.khronos.egl.EGL10.EGL_GREEN_SIZE, 8,
+                    javax.microedition.khronos.egl.EGL10.EGL_BLUE_SIZE, 8,
+                    javax.microedition.khronos.egl.EGL10.EGL_DEPTH_SIZE, 16,
+                    javax.microedition.khronos.egl.EGL10.EGL_RENDERABLE_TYPE, 4 // ES2
+                )
+                if (samples > 0) {
+                    base += listOf(
+                        javax.microedition.khronos.egl.EGL10.EGL_SAMPLE_BUFFERS, 1,
+                        javax.microedition.khronos.egl.EGL10.EGL_SAMPLES, samples
+                    )
+                }
+                base += javax.microedition.khronos.egl.EGL10.EGL_NONE
+                val spec = base.toIntArray()
+                val num = IntArray(1)
+                if (egl.eglChooseConfig(display, spec, null, 0, num) && num[0] > 0) {
+                    val configs = arrayOfNulls<javax.microedition.khronos.egl.EGLConfig>(num[0])
+                    egl.eglChooseConfig(display, spec, configs, num[0], num)
+                    return configs[0]!!
+                }
+            }
+            throw IllegalArgumentException("Aucune config EGL compatible")
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

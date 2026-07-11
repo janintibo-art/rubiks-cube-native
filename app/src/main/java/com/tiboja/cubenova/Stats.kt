@@ -68,6 +68,26 @@ object Stats {
     fun musicTrack(ctx: Context) = p(ctx).getInt("music_track", 0)
     fun setMusicTrack(ctx: Context, v: Int) = p(ctx).edit().putInt("music_track", v).apply()
 
+    // ---------- Réglages graphiques (0..100, 50 = réglage d'usine) ----------
+    val GFX_KEYS = arrayOf("gfx_bright", "gfx_gloss", "gfx_reflect", "gfx_bevel", "gfx_halo")
+    fun gfx(ctx: Context, key: String) = p(ctx).getInt(key, 50)
+    fun setGfx(ctx: Context, key: String, v: Int) = p(ctx).edit().putInt(key, v.coerceIn(0, 100)).apply()
+    fun resetGfx(ctx: Context) {
+        val e = p(ctx).edit()
+        for (k in GFX_KEYS) e.remove(k)
+        e.apply()
+    }
+    /** Applique les réglages persistés au renderer (50 = valeur d'usine). */
+    fun applyGfx(ctx: Context, r: CubeRenderer) {
+        fun map(v: Int, def: Float, min: Float, max: Float): Float =
+            if (v <= 50) min + (def - min) * (v / 50f) else def + (max - def) * ((v - 50) / 50f)
+        r.gBrightness = map(gfx(ctx, "gfx_bright"), 0.55f, 0.25f, 0.95f)
+        r.gGloss      = map(gfx(ctx, "gfx_gloss"), 0.42f, 0.00f, 1.00f)
+        r.gReflect    = map(gfx(ctx, "gfx_reflect"), 0.55f, 0.00f, 1.20f)
+        r.gBevel      = map(gfx(ctx, "gfx_bevel"), 0.085f, 0.03f, 0.16f)
+        r.gHalo       = map(gfx(ctx, "gfx_halo"), 1.0f, 0.0f, 2.0f)
+    }
+
     // ---------- Défi du jour ----------
     /** Clé du jour au format AAAAMMJJ (locale). */
     fun todayKey(): Long {

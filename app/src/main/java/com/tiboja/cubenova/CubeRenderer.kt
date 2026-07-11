@@ -46,8 +46,20 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var bgProgram = 0
     private var bgPosHandle = 0
     private var bgAspectHandle = 0
+    private var bgHaloHandle = 0
     private var bgBuffer: java.nio.FloatBuffer? = null
     private var aspect = 1f
+
+    // Réglages graphiques (valeurs par défaut = réglage "usine")
+    private var brightnessHandle = 0
+    private var glossHandle = 0
+    private var reflectHandle = 0
+    private var bevelHandle = 0
+    @Volatile var gBrightness = 0.55f
+    @Volatile var gGloss = 0.42f
+    @Volatile var gReflect = 0.55f
+    @Volatile var gBevel = 0.085f
+    @Volatile var gHalo = 1.0f
     private var samplerHandle = 0
 
     private var textureId = 0
@@ -199,6 +211,10 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         localUvHandle = GLES20.glGetAttribLocation(program, "aLocalUV")
         mvpHandle = GLES20.glGetUniformLocation(program, "uMVP")
         modelHandle = GLES20.glGetUniformLocation(program, "uModel")
+        brightnessHandle = GLES20.glGetUniformLocation(program, "uBrightness")
+        glossHandle = GLES20.glGetUniformLocation(program, "uGloss")
+        reflectHandle = GLES20.glGetUniformLocation(program, "uReflect")
+        bevelHandle = GLES20.glGetUniformLocation(program, "uBevel")
         samplerHandle = GLES20.glGetUniformLocation(program, "uTexture")
 
         val ids = IntArray(1)
@@ -215,6 +231,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         GLES20.glLinkProgram(bgProgram)
         bgPosHandle = GLES20.glGetAttribLocation(bgProgram, "aPos")
         bgAspectHandle = GLES20.glGetUniformLocation(bgProgram, "uAspect")
+        bgHaloHandle = GLES20.glGetUniformLocation(bgProgram, "uHalo")
 
         val quad = floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)
         bgBuffer = java.nio.ByteBuffer.allocateDirect(quad.size * 4)
@@ -257,6 +274,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             GLES20.glDisable(GLES20.GL_DEPTH_TEST)
             GLES20.glUseProgram(bgProgram)
             GLES20.glUniform1f(bgAspectHandle, aspect)
+            GLES20.glUniform1f(bgHaloHandle, gHalo)
             buf.position(0)
             GLES20.glVertexAttribPointer(bgPosHandle, 2, GLES20.GL_FLOAT, false, 0, buf)
             GLES20.glEnableVertexAttribArray(bgPosHandle)
@@ -320,6 +338,10 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         if (animating) advanceAnimation()
 
         GLES20.glUseProgram(program)
+        GLES20.glUniform1f(brightnessHandle, gBrightness)
+        GLES20.glUniform1f(glossHandle, gGloss)
+        GLES20.glUniform1f(reflectHandle, gReflect)
+        GLES20.glUniform1f(bevelHandle, gBevel)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
         GLES20.glUniform1i(samplerHandle, 0)
@@ -465,6 +487,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         private const val BG_FRAGMENT_SRC = """
             precision mediump float;
             uniform float uAspect;
+            uniform float uHalo;         // intensité du halo (défaut 1.0)
             varying vec2 vPos;
             void main() {
                 vec2 p = vPos;
@@ -472,11 +495,11 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                 float r = length(p);
 
                 vec3 deep = vec3(0.020, 0.020, 0.045);   // bords : nuit profonde
-                vec3 glow = vec3(0.075, 0.115, 0.230);   // centre : lueur bleutée
+                vec3 glow = vec3(0.075, 0.115, 0.230) * uHalo;   // centre : lueur bleutée
 
                 float halo = exp(-r * r * 1.35);                       // lueur centrale douce
                 vec3 col = mix(deep, glow, halo);
-                col += vec3(0.030, 0.055, 0.100) * exp(-r * r * 4.5);  // coeur plus lumineux
+                col += vec3(0.030, 0.055, 0.100) * uHalo * exp(-r * r * 4.5);
                 col *= 1.0 - 0.22 * smoothstep(0.7, 1.6, r);           // vignettage
 
                 gl_FragColor = vec4(col, 1.0);
@@ -506,6 +529,10 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         private const val FRAGMENT_SRC = """
             precision mediump float;
             uniform sampler2D uTexture;
+            uniform float uBrightness;   // luminosité ambiante (défaut 0.55)
+            uniform float uGloss;        // brillance spéculaire (défaut 0.42)
+            uniform float uReflect;      // reflets néon (défaut 0.55)
+            uniform float uBevel;        // largeur du chanfrein (défaut 0.085)
             varying vec2 vUV;
             varying float vTex;
             varying vec3 vNormal;
@@ -523,8 +550,8 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                 vec2 d = min(vLocalUV, 1.0 - vLocalUV);
                 float edge = min(d.x, d.y);
 
-                const float GAP   = 0.030;   // rainure noire entre stickers
-                const float BEVEL = 0.085;   // largeur du chanfrein
+                float GAP   = 0.030;         // rainure noire entre stickers
+                float BEVEL = uBevel;        // largeur du chanfrein (réglable)
 
                 // Normale perturbée : le chanfrein s'incline vers l'extérieur (relief bombé)
                 vec3 N = normalize(vNormal);
@@ -548,17 +575,17 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
                 float diff = max(dot(N, L1), 0.0);
                 float rim  = max(dot(N, L2), 0.0);
-                float ambient = 0.55;
+                float ambient = uBrightness;                     // luminosité (réglable)
                 float lambert = ambient + 0.45 * diff + 0.14 * rim;
 
                 // Spéculaire large (plastique verni)
                 vec3 H1 = normalize(L1 + V);
-                float spec = pow(max(dot(N, H1), 0.0), 32.0) * 0.42;
+                float spec = pow(max(dot(N, H1), 0.0), 32.0) * uGloss;   // brillance (réglable)
 
                 // Réflexion d'environnement : teinte néon selon l'orientation
                 vec3 envTint = mix(vec3(0.10, 0.16, 0.34), vec3(0.30, 0.55, 0.75), N.y * 0.5 + 0.5);
                 float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);   // Fresnel : bords plus brillants
-                vec3 env = envTint * fres * 0.55;
+                vec3 env = envTint * fres * uReflect;               // reflets (réglable)
 
                 vec3 color = base * lambert + vec3(spec) + env;
 
