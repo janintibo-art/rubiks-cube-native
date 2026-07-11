@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:background="#0d0d12">
 
-    <com.example.rubikscube.CubeGLSurfaceView
+    <com.tiboja.cubenova.CubeGLSurfaceView
         android:id="@+id/glView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -86,7 +86,7 @@
     </LinearLayout>
 
     <!-- Joystick de rotation (coin bas gauche) -->
-    <com.example.rubikscube.JoystickView
+    <com.tiboja.cubenova.JoystickView
         android:id="@+id/joystick"
         android:layout_width="130dp"
         android:layout_height="130dp"

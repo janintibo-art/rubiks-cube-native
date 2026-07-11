@@ -4,20 +4,38 @@ plugins {
 }
 
 android {
-    namespace = "com.example.rubikscube"
+    namespace = "com.tiboja.cubenova"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.rubikscube"
+        applicationId = "com.tiboja.cubenova"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
 
+    // Signature release : activée seulement si les variables d'environnement
+    // sont présentes (elles le sont dans GitHub Actions via les Secrets).
+    // En local, l'absence de ces variables laisse un build non signé.
+    signingConfigs {
+        create("release") {
+            val ksFile = System.getenv("KEYSTORE_FILE")
+            if (ksFile != null) {
+                storeFile = file(ksFile)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (System.getenv("KEYSTORE_FILE") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
