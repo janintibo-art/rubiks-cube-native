@@ -160,9 +160,21 @@ class MainActivity : Activity() {
         if (directional) glView.renderer.setViewFlat() else if (!initial) glView.renderer.setViewIso()
     }
 
+    private var lastFacesChecked = 0
+
     private fun updateHud() {
         txtTimer.text = Stats.formatTime(glView.renderer.elapsedMs())
         txtMoves.text = "${glView.renderer.moveCount()} coups"
+
+        // Succès "N faces complétées" en temps réel
+        val faces = glView.renderer.maxFacesReached
+        if (faces > lastFacesChecked) {
+            lastFacesChecked = faces
+            val newly = Stats.recordFaces(this, faces)
+            if (newly.isNotEmpty()) {
+                Toast.makeText(this, "⭐ Succès : ${newly.last()}", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // Bouton Annuler : actif seulement s'il y a un coup à défaire
         val can = glView.renderer.canUndo()
@@ -281,14 +293,44 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.parseColor("#12121a"))
         }
         grid.adapter = ThemeAdapter()
-        val d = dialog().setTitle("Choisir un thème").setView(grid)
+        val d = dialog().setTitle("Thèmes  (💎 ${Stats.gems(this)})").setView(grid)
             .setNegativeButton("Fermer", null).create()
         grid.setOnItemClickListener { _, _, position, _ ->
-            glView.renderer.setTheme(position)
-            glView.renderer.requestReset()
-            d.dismiss()
+            if (Stats.themeUnlocked(this, position)) {
+                glView.renderer.setTheme(position)
+                glView.renderer.requestReset()
+                d.dismiss()
+            } else {
+                confirmBuyTheme(position, d)
+            }
         }
         d.show()
+    }
+
+    private fun confirmBuyTheme(position: Int, parent: android.app.AlertDialog) {
+        val gems = Stats.gems(this)
+        if (gems < Stats.THEME_PRICE) {
+            dialog()
+                .setTitle("💎 Gemmes insuffisantes")
+                .setMessage("Ce thème coûte ${Stats.THEME_PRICE} 💎 et tu en as $gems.\n\n" +
+                        "Gagne des gemmes en résolvant des cubes et le Défi du jour !")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+        dialog()
+            .setTitle("Débloquer « ${Themes.NAMES[position]} » ?")
+            .setMessage("Prix : ${Stats.THEME_PRICE} 💎   (tu as $gems 💎)")
+            .setPositiveButton("Débloquer") { _, _ ->
+                if (Stats.buyTheme(this, position)) {
+                    Sound.win()
+                    glView.renderer.setTheme(position)
+                    glView.renderer.requestReset()
+                    parent.dismiss()
+                }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     private inner class ThemeAdapter : BaseAdapter() {
@@ -309,12 +351,15 @@ class MainActivity : Activity() {
                 assets.open(Themes.THUMBS[position]).use { img.setImageBitmap(BitmapFactory.decodeStream(it)) }
             } catch (_: Exception) {}
             val label = TextView(ctx).apply {
-                text = Themes.NAMES[position]
-                setTextColor(Color.WHITE)
+                val locked = !Stats.themeUnlocked(this@MainActivity, position)
+                text = if (locked) "🔒 ${Themes.NAMES[position]} — ${Stats.THEME_PRICE}💎"
+                       else Themes.NAMES[position]
+                setTextColor(if (locked) Color.parseColor("#9999CC") else Color.WHITE)
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(0, 6, 0, 0)
             }
+            if (!Stats.themeUnlocked(this@MainActivity, position)) img.alpha = 0.35f
             container.addView(img)
             container.addView(label)
             return container

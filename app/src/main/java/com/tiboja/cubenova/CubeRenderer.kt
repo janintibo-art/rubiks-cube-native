@@ -130,6 +130,10 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     fun canUndo(): Boolean = history.isNotEmpty() && !animating && moveQueue.isEmpty() && scrambleRemaining == 0
+
+    /** Meilleur nombre de faces complètes atteint pendant la partie (armée) — pour les succès. */
+    @Volatile var maxFacesReached = 0
+        private set
     fun requestReset() { resetRequested = true }
     fun setTheme(index: Int) { pendingAtlas = Themes.ATLAS[index] }
     fun setSize(n: Int) { pendingSize = n; resetRequested = true }
@@ -148,6 +152,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         timing = false; moves = 0; finalMs = 0
         armed = false; manualMoves = 0
         history.clear(); undoing = false
+        maxFacesReached = 0
         scrambleRemaining = count
         repeat(count) {
             val axis = rng.nextInt(3)
@@ -294,6 +299,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             timing = false; moves = 0; finalMs = 0; scrambleRemaining = 0
             armed = false; manualMoves = 0
             history.clear(); undoing = false
+            maxFacesReached = 0
             synchronized(winLock) { pendingWin = null }
             cubies = buildCubies()
         }
@@ -440,6 +446,10 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             }
             onUserMove?.invoke()
             if (!armed && manualMoves >= 10) armed = true   // évite les faux records
+            if (armed) {
+                val f = countSolvedFaces()
+                if (f > maxFacesReached) maxFacesReached = f
+            }
             if (armed && isSolved()) {
                 timing = false
                 finalMs = SystemClock.elapsedRealtime() - startMs
@@ -466,6 +476,43 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                 return false
         }
         return true
+    }
+
+    /**
+     * Nombre de faces du cube entièrement unicolores. Pour chaque face monde,
+     * on identifie quelle face "maison" (couleur) de chaque pièce pointe dans
+     * cette direction via orientation transposée. Face uniforme = complète.
+     */
+    fun countSolvedFaces(): Int {
+        if (cubies.isEmpty()) return 0
+        val half = (size - 1) / 2f
+        val dirs = arrayOf(
+            floatArrayOf(1f, 0f, 0f), floatArrayOf(-1f, 0f, 0f),
+            floatArrayOf(0f, 1f, 0f), floatArrayOf(0f, -1f, 0f),
+            floatArrayOf(0f, 0f, 1f), floatArrayOf(0f, 0f, -1f)
+        )
+        var solved = 0
+        for (d in dirs) {
+            var color = -1
+            var uniform = true
+            for (c in cubies) {
+                val coord = c.cx * d[0] + c.cy * d[1] + c.cz * d[2]
+                if (abs(coord - half) > 0.01f) continue
+                val o = c.orientation
+                val lx = o[0] * d[0] + o[1] * d[1] + o[2] * d[2]
+                val ly = o[4] * d[0] + o[5] * d[1] + o[6] * d[2]
+                val lz = o[8] * d[0] + o[9] * d[1] + o[10] * d[2]
+                val id = when {
+                    lx > 0.9f -> 0; lx < -0.9f -> 1
+                    ly > 0.9f -> 2; ly < -0.9f -> 3
+                    lz > 0.9f -> 4; else -> 5
+                }
+                if (color == -1) color = id
+                else if (color != id) { uniform = false; break }
+            }
+            if (uniform && color != -1) solved++
+        }
+        return solved
     }
 
     private fun loadShader(type: Int, src: String): Int {
@@ -501,6 +548,11 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
                 vec3 col = mix(deep, glow, halo);
                 col += vec3(0.030, 0.055, 0.100) * uHalo * exp(-r * r * 4.5);
                 col *= 1.0 - 0.22 * smoothstep(0.7, 1.6, r);           // vignettage
+
+                // Ombre portée : ellipse douce sous le cube
+                vec2 sp = vec2(vPos.x * uAspect, (vPos.y + 0.62) * 2.6);
+                float shadow = exp(-dot(sp, sp) * 2.2);
+                col *= 1.0 - 0.55 * shadow;
 
                 gl_FragColor = vec4(col, 1.0);
             }

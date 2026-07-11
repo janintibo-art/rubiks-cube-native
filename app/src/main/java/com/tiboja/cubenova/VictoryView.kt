@@ -82,6 +82,12 @@ class VictoryView @JvmOverloads constructor(
         running = true
         textAlpha = 0f; smileyScale = 0f
         visibility = VISIBLE
+        bringToFront()
+        // Si la vue n'a pas encore été mesurée (elle était GONE), relance après layout
+        if (width == 0 || height == 0) {
+            requestLayout()
+            post { startMs = System.currentTimeMillis(); invalidate() }
+        }
         invalidate()
     }
 

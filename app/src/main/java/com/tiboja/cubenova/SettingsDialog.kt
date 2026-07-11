@@ -103,6 +103,17 @@ object SettingsDialog {
         paint(Music.currentTrack())
         root.addView(row)
 
+        // Version du build (pour vérifier que l'APK installé est bien le dernier)
+        val version = TextView(ctx).apply {
+            setTextColor(Color.parseColor("#8888B8")); textSize = 11f
+            setPadding(0, 20, 0, 0)
+            val v = try {
+                ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
+            } catch (_: Exception) { "?" }
+            text = "CubeNova v$v"
+        }
+        root.addView(version)
+
         AlertDialog.Builder(act, R.style.NeonDialog)
             .setTitle("⚙ Paramètres")
             .setView(root)

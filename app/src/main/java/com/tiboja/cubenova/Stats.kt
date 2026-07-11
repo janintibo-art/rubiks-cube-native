@@ -13,6 +13,11 @@ object Stats {
 
     // --- Succès : id -> libellé ---
     val ACHIEVEMENTS = listOf(
+        "face_1" to "Première face complétée",
+        "face_2" to "2 faces en même temps",
+        "face_3" to "3 faces en même temps",
+        "face_4" to "4 faces en même temps",
+        "face_5" to "5 faces en même temps",
         "first" to "Premier cube résolu",
         "solve_2" to "Facile vaincu (2×2)",
         "solve_3" to "Normal vaincu (3×3)",
@@ -45,6 +50,41 @@ object Stats {
 
     fun isUnlocked(ctx: Context, id: String) = p(ctx).getBoolean("ach_$id", false)
     fun challengeDone(ctx: Context, id: String) = p(ctx).getBoolean("chal_$id", false)
+
+    /** Débloque les succès "N faces en même temps" jusqu'à maxFaces. Renvoie les nouveaux libellés. */
+    fun recordFaces(ctx: Context, maxFaces: Int): List<String> {
+        if (maxFaces < 1) return emptyList()
+        val pr = p(ctx); val e = pr.edit()
+        val newly = ArrayList<String>()
+        for (n in 1..minOf(maxFaces, 5)) {
+            val id = "face_$n"
+            if (!pr.getBoolean("ach_$id", false)) {
+                e.putBoolean("ach_$id", true)
+                newly.add(ACHIEVEMENTS.first { it.first == id }.second)
+            }
+        }
+        e.apply()
+        return newly
+    }
+
+    // ---------- Thèmes à débloquer (gemmes) ----------
+    const val THEME_PRICE = 150L
+    /** Thèmes gratuits : Classique (0) + les 3 premiers. Les autres coûtent THEME_PRICE gemmes. */
+    fun themeUnlocked(ctx: Context, index: Int): Boolean =
+        index <= 3 || p(ctx).getBoolean("theme_unlocked_$index", false)
+
+    /** Tente d'acheter un thème. Renvoie true si OK (ou déjà possédé). */
+    fun buyTheme(ctx: Context, index: Int): Boolean {
+        if (themeUnlocked(ctx, index)) return true
+        val pr = p(ctx)
+        val g = pr.getLong("gems", 0L)
+        if (g < THEME_PRICE) return false
+        pr.edit()
+            .putLong("gems", g - THEME_PRICE)
+            .putBoolean("theme_unlocked_$index", true)
+            .apply()
+        return true
+    }
 
     // Aide au premier lancement
     fun isHelpSeen(ctx: Context) = p(ctx).getBoolean("help_seen", false)
