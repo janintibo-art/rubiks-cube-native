@@ -50,6 +50,9 @@ class MainActivity : Activity() {
         joystick = findViewById(R.id.joystick)
         miView = findViewById(R.id.miView)
 
+        Sound.init(this)
+        glView.renderer.onUserMove = { Sound.move() }
+
         // Joystick
         joystick.onMove = { nx, ny -> glView.renderer.addDrag(nx * 3.2f, ny * 3.2f) }
         joystick.onDirection = { dx, dy ->
@@ -70,6 +73,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.miDaily).setOnClickListener { closeMenu(); startDaily() }
         findViewById<Button>(R.id.miLeaderboard).setOnClickListener { closeMenu(); showLeaderboard() }
         findViewById<Button>(R.id.miAchievements).setOnClickListener { closeMenu(); showAchievements() }
+        findViewById<Button>(R.id.miSettings).setOnClickListener { closeMenu(); showSettings() }
 
         // Actions
         findViewById<Button>(R.id.btnScramble).setOnClickListener {
@@ -138,6 +142,7 @@ class MainActivity : Activity() {
         txtMoves.text = "${glView.renderer.moveCount()} coups"
 
         val win = glView.renderer.consumeWin() ?: return
+        Sound.win()
         val timeMs = win[0]; val moves = win[1].toInt(); val size = win[2].toInt()
         val isDaily = dailyMode && size == 3
         val report = Stats.recordWin(this, size, timeMs, moves, isDaily)
@@ -213,6 +218,21 @@ class MainActivity : Activity() {
         }
         dialog().setTitle("⭐ Succès").setMessage(sb.toString().trim())
             .setPositiveButton("OK", null).show()
+    }
+
+    private fun showSettings() {
+        val items = arrayOf("🔊 Son", "📳 Vibration")
+        val checked = booleanArrayOf(Stats.soundOn(this), Stats.vibrateOn(this))
+        dialog()
+            .setTitle("⚙ Paramètres")
+            .setMultiChoiceItems(items, checked) { _, which, isChecked -> checked[which] = isChecked }
+            .setPositiveButton("Enregistrer") { _, _ ->
+                Stats.setSoundOn(this, checked[0])
+                Stats.setVibrateOn(this, checked[1])
+                Sound.refresh(this)
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     private fun showThemeChooser() {

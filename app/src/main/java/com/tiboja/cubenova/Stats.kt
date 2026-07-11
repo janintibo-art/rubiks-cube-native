@@ -54,6 +54,12 @@ object Stats {
     fun viewDirectional(ctx: Context) = p(ctx).getBoolean("view_dir", false)
     fun setViewDirectional(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("view_dir", v).apply()
 
+    // Son / vibration (activés par défaut)
+    fun soundOn(ctx: Context) = p(ctx).getBoolean("sound_on", true)
+    fun vibrateOn(ctx: Context) = p(ctx).getBoolean("vibrate_on", true)
+    fun setSoundOn(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("sound_on", v).apply()
+    fun setVibrateOn(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("vibrate_on", v).apply()
+
     // ---------- Défi du jour ----------
     /** Clé du jour au format AAAAMMJJ (locale). */
     fun todayKey(): Long {

@@ -178,10 +178,17 @@ class MenuActivity : Activity() {
     }
 
     private fun openSettings() {
+        val items = arrayOf("🔊 Son", "📳 Vibration")
+        val checked = booleanArrayOf(Stats.soundOn(this), Stats.vibrateOn(this))
         AlertDialog.Builder(this, R.style.NeonDialog)
-            .setTitle("Paramètres")
-            .setMessage("CubeNova\nVersion 1.0\n\nNiveau, thème et options sont aussi accessibles en jeu via le menu ☰.")
-            .setPositiveButton("OK", null)
+            .setTitle("⚙ Paramètres")
+            .setMultiChoiceItems(items, checked) { _, which, isChecked -> checked[which] = isChecked }
+            .setPositiveButton("Enregistrer") { _, _ ->
+                Stats.setSoundOn(this, checked[0])
+                Stats.setVibrateOn(this, checked[1])
+                Sound.refresh(this)
+            }
+            .setNegativeButton("Annuler", null)
             .show()
     }
 

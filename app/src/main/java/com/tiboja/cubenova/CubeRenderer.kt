@@ -137,6 +137,9 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
     fun addDrag(dx: Float, dy: Float) { dragX += dx; dragY += dy }
 
+    // Appelé (thread GL) à chaque rotation de face effectuée par le joueur
+    @Volatile var onUserMove: (() -> Unit)? = null
+
     /** Fait pivoter la vue de 90° vers la face suivante (mode directionnel). axisIdx: 0=X, 1=Y. */
     fun snapView(axisIdx: Int, dir: Int) {
         if (snapLeft > 0f) return   // une rotation à la fois
@@ -343,6 +346,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             if (!timing) { timing = true; startMs = SystemClock.elapsedRealtime() }
             moves++
             manualMoves++
+            onUserMove?.invoke()
             if (!armed && manualMoves >= 10) armed = true   // évite les faux records
             if (armed && isSolved()) {
                 timing = false
