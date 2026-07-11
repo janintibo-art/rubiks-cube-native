@@ -39,6 +39,14 @@ object Stats {
     fun isUnlocked(ctx: Context, id: String) = p(ctx).getBoolean("ach_$id", false)
     fun challengeDone(ctx: Context, id: String) = p(ctx).getBoolean("chal_$id", false)
 
+    // Aide au premier lancement
+    fun isHelpSeen(ctx: Context) = p(ctx).getBoolean("help_seen", false)
+    fun setHelpSeen(ctx: Context) = p(ctx).edit().putBoolean("help_seen", true).apply()
+
+    // Mode de vue (false = libre, true = directionnel)
+    fun viewDirectional(ctx: Context) = p(ctx).getBoolean("view_dir", false)
+    fun setViewDirectional(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("view_dir", v).apply()
+
     // ---------- Défi du jour ----------
     /** Clé du jour au format AAAAMMJJ (locale). */
     fun todayKey(): Long {

@@ -118,14 +118,15 @@
             android:textAllCaps="false" />
     </LinearLayout>
 
-    <!-- Astuce -->
-    <TextView
+    <!-- Bouton mode de vue (au-dessus du joystick) -->
+    <Button
+        android:id="@+id/btnViewMode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="150dp"
-        android:text="Glisse sur le cube pour tourner une face • joystick pour pivoter"
-        android:textColor="#88FFFFFF"
-        android:textSize="11sp"
-        android:gravity="center" />
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="166dp"
+        android:text="Vue: Libre"
+        android:textAllCaps="false"
+        android:textSize="12sp" />
 </FrameLayout>

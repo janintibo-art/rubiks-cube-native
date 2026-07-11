@@ -44,6 +44,22 @@ class MainActivity : Activity() {
 
         val joystick = findViewById<JoystickView>(R.id.joystick)
         joystick.onMove = { nx, ny -> glView.renderer.addDrag(nx * 3.2f, ny * 3.2f) }
+        joystick.onDirection = { dx, dy ->
+            if (dx != 0) glView.renderer.snapView(1, if (dx > 0) -1 else 1)   // gauche/droite → axe Y
+            else glView.renderer.snapView(0, if (dy > 0) 1 else -1)           // haut/bas → axe X
+        }
+
+        // Bascule mode de vue (libre / directionnel), mémorisée
+        val btnView = findViewById<Button>(R.id.btnViewMode)
+        var directional = Stats.viewDirectional(this)
+        joystick.directional = directional
+        btnView.text = if (directional) "Vue: Directionnel" else "Vue: Libre"
+        btnView.setOnClickListener {
+            directional = !directional
+            joystick.directional = directional
+            Stats.setViewDirectional(this, directional)
+            btnView.text = if (directional) "Vue: Directionnel" else "Vue: Libre"
+        }
 
         findViewById<Button>(R.id.btnTheme).setOnClickListener { showThemeChooser() }
         findViewById<Button>(R.id.btnLevel).setOnClickListener { showLevelChooser() }
@@ -60,6 +76,22 @@ class MainActivity : Activity() {
         } else {
             val startSize = intent.getIntExtra("startSize", 3)
             if (startSize in 2..5) glView.renderer.setSize(startSize)
+        }
+
+        // Pop-up d'aide (une seule fois)
+        if (!Stats.isHelpSeen(this)) {
+            Stats.setHelpSeen(this)
+            AlertDialog.Builder(this)
+                .setTitle("Comment jouer")
+                .setMessage(
+                    "• Glisse sur le cube pour tourner une face.\n" +
+                    "• Utilise le joystick pour pivoter la vue.\n" +
+                    "• Bouton « Vue » : passe du mode Libre au mode Directionnel " +
+                    "(haut/bas/gauche/droite qui tourne le cube face par face).\n\n" +
+                    "Mélange le cube, puis remets l'image en ordre le plus vite possible !"
+                )
+                .setPositiveButton("C'est parti !", null)
+                .show()
         }
     }
 

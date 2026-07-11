@@ -25,6 +25,11 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     @Volatile private var size = 3
     @Volatile private var pendingSize = 3
     @Volatile private var pendingScrambleSeed: Long? = null
+
+    // Rotation "snap" de la vue (mode directionnel) : 90° animés
+    private var snapLeft = 0f
+    private var snapAxisIdx = 1
+    private var snapDir = 1
     private var cell = cellFor(3)
 
     private var program = 0
@@ -127,6 +132,12 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         synchronized(winLock) { val w = pendingWin; pendingWin = null; return w }
     }
     fun addDrag(dx: Float, dy: Float) { dragX += dx; dragY += dy }
+
+    /** Fait pivoter la vue de 90° vers la face suivante (mode directionnel). axisIdx: 0=X, 1=Y. */
+    fun snapView(axisIdx: Int, dir: Int) {
+        if (snapLeft > 0f) return   // une rotation à la fois
+        snapAxisIdx = axisIdx; snapDir = dir; snapLeft = 90f
+    }
     fun isBusy(): Boolean = animating || moveQueue.isNotEmpty()
 
     fun copyVPG(out: FloatArray): Boolean {
@@ -211,6 +222,17 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             Matrix.rotateM(temp, 0, dragX, 0f, 1f, 0f)
             Matrix.multiplyMM(global, 0, temp, 0, global, 0)
             dragX = 0f; dragY = 0f
+        }
+
+        // Rotation "snap" de 90° (mode directionnel)
+        if (snapLeft > 0f) {
+            val step = if (snapLeft < 9f) snapLeft else 9f
+            snapLeft -= step
+            val ax = if (snapAxisIdx == 0) 1f else 0f
+            val ay = if (snapAxisIdx == 1) 1f else 0f
+            Matrix.setIdentityM(temp, 0)
+            Matrix.rotateM(temp, 0, step * snapDir, ax, ay, 0f)
+            Matrix.multiplyMM(global, 0, temp, 0, global, 0)
         }
 
         if (!animating) moveQueue.poll()?.let { startAnimation(it.axis, it.layer, it.dir) }

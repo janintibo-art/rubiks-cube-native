@@ -9,12 +9,15 @@ import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.min
 
 /**
- * Petit joystick virtuel. Tant qu'il est tenu, il appelle en continu
- * onMove(nx, ny) avec nx,ny ∈ [-1,1] (0,0 au centre).
+ * Joystick virtuel avec deux modes :
+ *  - Libre : appelle onMove(nx,ny) en continu (rotation fluide de la vue).
+ *  - Directionnel : à chaque poussée franche, appelle onDirection(dx,dy) UNE fois
+ *    (dx/dy ∈ {-1,0,1}) → la vue tourne de 90° vers la face suivante.
  */
 class JoystickView @JvmOverloads constructor(
     context: Context,
@@ -22,34 +25,26 @@ class JoystickView @JvmOverloads constructor(
 ) : View(context, attrs) {
 
     var onMove: ((Float, Float) -> Unit)? = null
+    var onDirection: ((Int, Int) -> Unit)? = null
+    var directional: Boolean = false
 
-    private val basePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(70, 255, 255, 255)
-    }
+    private val basePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(70, 255, 255, 255) }
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(140, 255, 255, 255)
-        style = Paint.Style.STROKE
-        strokeWidth = 4f
+        color = Color.argb(140, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 4f
     }
-    private val knobPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(220, 240, 240, 240)
-    }
+    private val knobPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(220, 240, 240, 240) }
 
-    private var cx = 0f
-    private var cy = 0f
-    private var baseRadius = 0f
-    private var knobRadius = 0f
-    private var knobX = 0f
-    private var knobY = 0f
-
-    private var nx = 0f
-    private var ny = 0f
+    private var cx = 0f; private var cy = 0f
+    private var baseRadius = 0f; private var knobRadius = 0f
+    private var knobX = 0f; private var knobY = 0f
+    private var nx = 0f; private var ny = 0f
     private var active = false
+    private var fired = false   // mode directionnel : évite les répétitions
 
     private val handler = Handler(Looper.getMainLooper())
     private val ticker = object : Runnable {
         override fun run() {
-            if (active && (nx != 0f || ny != 0f)) {
+            if (active && !directional && (nx != 0f || ny != 0f)) {
                 onMove?.invoke(nx, ny)
                 handler.postDelayed(this, 16)
             }
@@ -71,7 +66,11 @@ class JoystickView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> { active = true; handler.post(ticker); update(event.x, event.y) }
+            MotionEvent.ACTION_DOWN -> {
+                active = true
+                if (!directional) handler.post(ticker)
+                update(event.x, event.y)
+            }
             MotionEvent.ACTION_MOVE -> update(event.x, event.y)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> reset()
         }
@@ -79,19 +78,29 @@ class JoystickView @JvmOverloads constructor(
     }
 
     private fun update(x: Float, y: Float) {
-        var dx = x - cx
-        var dy = y - cy
+        var dx = x - cx; var dy = y - cy
         val dist = hypot(dx, dy)
         val max = baseRadius - knobRadius
         if (dist > max && dist > 0f) { dx = dx / dist * max; dy = dy / dist * max }
         knobX = cx + dx; knobY = cy + dy
         nx = if (max > 0) dx / max else 0f
         ny = if (max > 0) dy / max else 0f
+
+        if (directional) {
+            val mag = hypot(nx, ny)
+            if (mag > 0.55f && !fired) {
+                if (abs(nx) >= abs(ny)) onDirection?.invoke(if (nx > 0) 1 else -1, 0)
+                else onDirection?.invoke(0, if (ny > 0) 1 else -1)
+                fired = true
+            } else if (mag < 0.25f) {
+                fired = false
+            }
+        }
         invalidate()
     }
 
     private fun reset() {
-        active = false
+        active = false; fired = false
         nx = 0f; ny = 0f
         knobX = cx; knobY = cy
         invalidate()
