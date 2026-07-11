@@ -11,8 +11,8 @@ import kotlin.math.roundToInt
 
 class CubeRenderer : GLSurfaceView.Renderer {
 
-    // Un mouvement en attente : quelle face + sens (+1 / -1)
-    data class Move(val face: Char, val dir: Int)
+    // Un mouvement : quel axe (0=x,1=y,2=z), quelle couche (-1/0/1), quel sens (+1/-1)
+    data class Move(val axis: Int, val layer: Int, val dir: Int)
 
     private val moveQueue = ConcurrentLinkedQueue<Move>()
     @Volatile private var resetRequested = false
@@ -29,19 +29,23 @@ class CubeRenderer : GLSurfaceView.Renderer {
     private val model = FloatArray(16)
     private val mvp = FloatArray(16)
 
+    // Snapshot de Projection*View*Global, lu par le thread UI pour le picking
+    private val vpgSnapshot = FloatArray(16)
+    private val vpgLock = Any()
+    @Volatile private var vpgReady = false
+
     private var cubies = buildCubies()
 
-    // Rotation au doigt (deltas déposés par le thread UI, consommés ici)
     @Volatile private var dragX = 0f
     @Volatile private var dragY = 0f
 
     // Animation d'une face
     private var animating = false
-    private var animFace = 'U'
-    private var animDir = 1
-    private var animAngle = 0f          // angle courant en degrés
-    private val animAxis = FloatArray(3)
+    private var animAxisIndex = 1
     private var animLayer = 0
+    private var animDir = 1
+    private var animAngle = 0f
+    private val animAxis = FloatArray(3)
 
     private val spacing = 1.0f
 
@@ -52,10 +56,29 @@ class CubeRenderer : GLSurfaceView.Renderer {
         return list
     }
 
-    // Appelé depuis le thread UI
-    fun enqueueMove(face: Char, dir: Int) = moveQueue.add(Move(face, dir))
+    // --- API appelée depuis le thread UI ---
+    fun enqueueMove(axis: Int, layer: Int, dir: Int) = moveQueue.add(Move(axis, layer, dir))
+
+    /** Version boutons : convertit une face en (axe, couche, sens). */
+    fun enqueueMove(face: Char, dir: Int) {
+        val move = when (face) {
+            'U' -> Move(1, 1, dir);  'D' -> Move(1, -1, dir)
+            'R' -> Move(0, 1, dir);  'L' -> Move(0, -1, dir)
+            'F' -> Move(2, 1, dir);  else -> Move(2, -1, dir) // B
+        }
+        moveQueue.add(move)
+    }
+
     fun requestReset() { resetRequested = true }
     fun addDrag(dx: Float, dy: Float) { dragX += dx; dragY += dy }
+    fun isBusy(): Boolean = animating || moveQueue.isNotEmpty()
+
+    /** Copie le VPG courant pour le picking. Renvoie false si pas encore prêt. */
+    fun copyVPG(out: FloatArray): Boolean {
+        if (!vpgReady) return false
+        synchronized(vpgLock) { System.arraycopy(vpgSnapshot, 0, out, 0, 16) }
+        return true
+    }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glClearColor(0.05f, 0.05f, 0.07f, 1f)
@@ -73,7 +96,6 @@ class CubeRenderer : GLSurfaceView.Renderer {
         mvpHandle = GLES20.glGetUniformLocation(program, "uMVP")
 
         Matrix.setIdentityM(global, 0)
-        // Petite inclinaison initiale pour voir 3 faces
         Matrix.rotateM(global, 0, -30f, 1f, 0f, 0f)
         Matrix.rotateM(global, 0, -35f, 0f, 1f, 0f)
     }
@@ -96,7 +118,6 @@ class CubeRenderer : GLSurfaceView.Renderer {
             cubies = buildCubies()
         }
 
-        // Applique la rotation au doigt
         if (dragX != 0f || dragY != 0f) {
             Matrix.setIdentityM(temp, 0)
             Matrix.rotateM(temp, 0, dragY, 1f, 0f, 0f)
@@ -105,19 +126,21 @@ class CubeRenderer : GLSurfaceView.Renderer {
             dragX = 0f; dragY = 0f
         }
 
-        // Lance le prochain mouvement si libre
         if (!animating) {
-            moveQueue.poll()?.let { startAnimation(it.face, it.dir) }
+            moveQueue.poll()?.let { startAnimation(it.axis, it.layer, it.dir) }
         }
-
         if (animating) advanceAnimation()
 
         GLES20.glUseProgram(program)
 
-        val vp = temp // réutilise temp comme (projection * view)
+        val vp = FloatArray(16)
         Matrix.multiplyMM(vp, 0, projection, 0, view, 0)
         val vpGlobal = FloatArray(16)
         Matrix.multiplyMM(vpGlobal, 0, vp, 0, global, 0)
+
+        // Publie le VPG pour le picking
+        synchronized(vpgLock) { System.arraycopy(vpGlobal, 0, vpgSnapshot, 0, 16) }
+        vpgReady = true
 
         val animRot = FloatArray(16)
         Matrix.setIdentityM(animRot, 0)
@@ -126,13 +149,11 @@ class CubeRenderer : GLSurfaceView.Renderer {
         }
 
         for (c in cubies) {
-            // model = translation(grille) * orientation
             Matrix.setIdentityM(model, 0)
             Matrix.translateM(model, 0, c.gx * spacing, c.gy * spacing, c.gz * spacing)
             Matrix.multiplyMM(model, 0, model, 0, c.orientation, 0)
 
-            // Si la pièce est dans la couche animée, applique la rotation d'animation autour de l'origine
-            val inLayer = animating && layerCoord(c) == animLayer
+            val inLayer = animating && coordOnAxis(c, animAxisIndex) == animLayer
             val world = FloatArray(16)
             if (inLayer) {
                 Matrix.multiplyMM(world, 0, animRot, 0, model, 0)
@@ -146,52 +167,36 @@ class CubeRenderer : GLSurfaceView.Renderer {
         }
     }
 
-    private fun axisOf(face: Char): Int = when (face) {
-        'R', 'L' -> 0
-        'U', 'D' -> 1
-        else -> 2 // F, B
+    private fun coordOnAxis(c: Cubie, axis: Int): Int = when (axis) {
+        0 -> c.gx; 1 -> c.gy; else -> c.gz
     }
 
-    private fun layerValueOf(face: Char): Int = when (face) {
-        'R', 'U', 'F' -> 1
-        else -> -1 // L, D, B
-    }
-
-    private fun layerCoord(c: Cubie): Int = when (axisOf(animFace)) {
-        0 -> c.gx
-        1 -> c.gy
-        else -> c.gz
-    }
-
-    private fun startAnimation(face: Char, dir: Int) {
+    private fun startAnimation(axis: Int, layer: Int, dir: Int) {
         animating = true
-        animFace = face
+        animAxisIndex = axis
+        animLayer = layer
         animDir = dir
         animAngle = 0f
-        animLayer = layerValueOf(face)
         animAxis[0] = 0f; animAxis[1] = 0f; animAxis[2] = 0f
-        animAxis[axisOf(face)] = 1f
+        animAxis[axis] = 1f
     }
 
     private fun advanceAnimation() {
         val target = 90f * animDir
-        val step = 9f * animDir // ~10 frames
-        animAngle += step
+        animAngle += 9f * animDir
         if (abs(animAngle) >= 90f) {
             animAngle = target
             finishAnimation()
         }
     }
 
-    /** Verrouille la rotation : met à jour position + orientation des pièces de la couche. */
     private fun finishAnimation() {
         val rot = FloatArray(16)
         Matrix.setRotateM(rot, 0, 90f * animDir, animAxis[0], animAxis[1], animAxis[2])
 
         for (c in cubies) {
-            if (layerCoord(c) != animLayer) continue
+            if (coordOnAxis(c, animAxisIndex) != animLayer) continue
 
-            // Nouvelle position sur la grille
             val p = floatArrayOf(c.gx.toFloat(), c.gy.toFloat(), c.gz.toFloat(), 1f)
             val np = FloatArray(4)
             Matrix.multiplyMV(np, 0, rot, 0, p, 0)
@@ -199,7 +204,6 @@ class CubeRenderer : GLSurfaceView.Renderer {
             c.gy = np[1].roundToInt()
             c.gz = np[2].roundToInt()
 
-            // Nouvelle orientation (on empile la rotation dans la matrice de la pièce)
             val newOri = FloatArray(16)
             Matrix.multiplyMM(newOri, 0, rot, 0, c.orientation, 0)
             System.arraycopy(newOri, 0, c.orientation, 0, 16)
@@ -227,7 +231,6 @@ class CubeRenderer : GLSurfaceView.Renderer {
                 gl_Position = uMVP * aPos;
             }
         """
-
         private const val FRAGMENT_SRC = """
             precision mediump float;
             varying vec3 vColor;

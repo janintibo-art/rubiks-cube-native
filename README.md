@@ -6,7 +6,8 @@ GitHub Actions.
 
 ## ✨ Fonctionnalités
 - Rendu 3D natif OpenGL ES (27 pièces, faces colorées).
-- Rotation de la vue au doigt.
+- Rotation de la vue au doigt (dans le vide autour du cube).
+- **Rotation d'une face en glissant directement dessus** (picking 3D par lancer de rayon).
 - Boutons pour tourner chaque face (U, D, L, R, F, B).
 - Bascule sens horaire / anti-horaire.
 - Mélange aléatoire + réinitialisation.
@@ -33,6 +34,11 @@ rubiks-native/
             ├── layout/activity_main.xml
             └── values/{strings,styles}.xml
 ```
+
+## 🎮 Comment jouer
+- **Glisse sur une face du cube** → cette face (ou la tranche touchée) tourne dans le sens du glissement.
+- **Glisse dans le vide autour du cube** → tu fais pivoter la vue.
+- Les **boutons** en bas restent disponibles (U/D/L/R/F/B, sens, mélange, reset).
 
 ## 🤖 Obtenir l'APK
 1. Crée un dépôt GitHub et envoie ces fichiers (commandes Termux plus bas).
