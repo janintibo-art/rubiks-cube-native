@@ -18,14 +18,14 @@
         android:gravity="center_vertical"
         android:padding="14dp">
 
-        <TextView
+        <ImageView
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="42dp"
             android:layout_weight="1"
-            android:text="@string/app_name"
-            android:textColor="#EEEEEE"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:src="@drawable/logo_top"
+            android:scaleType="fitStart"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/app_name" />
 
         <Button
             android:id="@+id/btnMenu"
@@ -59,12 +59,14 @@
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:background="#3D4CCF" android:layout_marginTop="4dp" android:layout_marginBottom="8dp" />
         <Button android:id="@+id/miChallenges" style="@style/MenuItemButton" android:text="🎯  Défis" />
+        <Button android:id="@+id/miDaily" style="@style/MenuItemButton" android:text="🗓  Défi du jour" />
         <Button android:id="@+id/miLeaderboard" style="@style/MenuItemButton" android:text="🏆  Classement" />
         <Button android:id="@+id/miAchievements" style="@style/MenuItemButton" android:text="⭐  Succès" />
     </LinearLayout>
 
     <!-- Chrono + coups -->
     <LinearLayout
+        android:id="@+id/hud"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
@@ -122,17 +124,23 @@
 
         <Button
             android:id="@+id/btnScramble"
-            android:layout_width="140dp"
-            android:layout_height="wrap_content"
+            android:layout_width="150dp"
+            android:layout_height="52dp"
+            android:background="@drawable/btn_neon"
+            android:textColor="#EAEAFF"
             android:text="🔀 Mélanger"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textSize="15sp" />
 
         <Button
             android:id="@+id/btnReset"
-            android:layout_width="140dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_width="150dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/btn_neon"
+            android:textColor="#EAEAFF"
             android:text="↺ Réinitialiser"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textSize="15sp" />
     </LinearLayout>
 </FrameLayout>

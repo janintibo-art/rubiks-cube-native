@@ -23,6 +23,7 @@ class MainActivity : Activity() {
     private lateinit var txtTimer: TextView
     private lateinit var txtMoves: TextView
     private lateinit var menuPanel: View
+    private lateinit var hud: View
     private lateinit var joystick: JoystickView
     private lateinit var miView: Button
 
@@ -45,6 +46,7 @@ class MainActivity : Activity() {
         txtTimer = findViewById(R.id.txtTimer)
         txtMoves = findViewById(R.id.txtMoves)
         menuPanel = findViewById(R.id.menuPanel)
+        hud = findViewById(R.id.hud)
         joystick = findViewById(R.id.joystick)
         miView = findViewById(R.id.miView)
 
@@ -65,6 +67,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.miTheme).setOnClickListener { closeMenu(); showThemeChooser() }
         miView.setOnClickListener { toggleViewMode() }
         findViewById<Button>(R.id.miChallenges).setOnClickListener { closeMenu(); showChallenges() }
+        findViewById<Button>(R.id.miDaily).setOnClickListener { closeMenu(); startDaily() }
         findViewById<Button>(R.id.miLeaderboard).setOnClickListener { closeMenu(); showLeaderboard() }
         findViewById<Button>(R.id.miAchievements).setOnClickListener { closeMenu(); showAchievements() }
 
@@ -105,9 +108,17 @@ class MainActivity : Activity() {
 
     // ---------- Menu rétractable ----------
     private fun toggleMenu() {
-        menuPanel.visibility = if (menuPanel.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        val open = menuPanel.visibility != View.VISIBLE
+        menuPanel.visibility = if (open) View.VISIBLE else View.GONE
+        hud.visibility = if (open) View.GONE else View.VISIBLE   // évite le chevauchement
     }
-    private fun closeMenu() { menuPanel.visibility = View.GONE }
+    private fun closeMenu() { menuPanel.visibility = View.GONE; hud.visibility = View.VISIBLE }
+
+    private fun startDaily() {
+        dailyMode = true
+        dailySeed = Stats.dailySeed()
+        glView.renderer.requestChallenge(3, dailySeed)
+    }
 
     // ---------- Mode de vue ----------
     private fun toggleViewMode() {
@@ -140,6 +151,8 @@ class MainActivity : Activity() {
         sb.append("⏱ Temps : ${Stats.formatTime(timeMs)}")
         if (report.newRecordTime || report.dailyRecord) sb.append("  🏆 Record !")
         sb.append("\n🔢 Coups : $moves")
+        sb.append("\n\n⚡ +${report.xpGained} XP   💎 +${report.gemsGained}")
+        if (report.leveledUp) sb.append("\n🎖 Niveau ${Stats.level(this)} atteint !")
         if (report.newChallenges.isNotEmpty()) {
             sb.append("\n\n🎯 Défis réussis :\n")
             report.newChallenges.forEach { sb.append("• $it\n") }

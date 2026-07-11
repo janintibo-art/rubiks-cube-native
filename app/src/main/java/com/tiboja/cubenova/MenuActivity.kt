@@ -5,10 +5,15 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import kotlin.math.min
 
 /**
@@ -26,6 +31,14 @@ class MenuActivity : Activity() {
     private lateinit var bg: ImageView
     private val hotspots = ArrayList<Hotspot>()
     private val views = ArrayList<View>()
+
+    // Barre de stats réelle (Niveau / XP / Gemmes)
+    private lateinit var statsBar: LinearLayout
+    private lateinit var txtLevel: TextView
+    private lateinit var xpBar: ProgressBar
+    private lateinit var txtXp: TextView
+    private lateinit var txtGems: TextView
+    private val STATS_RECT = floatArrayOf(0.05f, 0.905f, 0.95f, 0.977f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,10 +62,60 @@ class MenuActivity : Activity() {
             views.add(v)
         }
 
+        buildStatsBar()
+
         root.viewTreeObserver.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() { layoutHotspots() }
             })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshStats()
+    }
+
+    private fun buildStatsBar() {
+        val cyan = Color.parseColor("#5EE7FF")
+        statsBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundResource(R.drawable.panel_bg)
+            setPadding(28, 14, 28, 14)
+        }
+        txtLevel = TextView(this).apply {
+            setTextColor(cyan); textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        val mid = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            lp.leftMargin = 24; lp.rightMargin = 24
+            layoutParams = lp
+        }
+        xpBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = Stats.XP_PER_LEVEL.toInt()
+        }
+        txtXp = TextView(this).apply { setTextColor(Color.parseColor("#AFAFE0")); textSize = 12f }
+        mid.addView(xpBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        mid.addView(txtXp)
+        txtGems = TextView(this).apply {
+            setTextColor(Color.parseColor("#B388FF")); textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        statsBar.addView(txtLevel)
+        statsBar.addView(mid)
+        statsBar.addView(txtGems)
+        root.addView(statsBar, FrameLayout.LayoutParams(1, 1))
+        refreshStats()
+    }
+
+    private fun refreshStats() {
+        if (!::txtLevel.isInitialized) return
+        txtLevel.text = "⭐ Niv. ${Stats.level(this)}"
+        xpBar.progress = Stats.xpInLevel(this).toInt()
+        txtXp.text = "${Stats.xpInLevel(this)} / ${Stats.XP_PER_LEVEL} XP"
+        txtGems.text = "💎 ${Stats.gems(this)}"
     }
 
     private fun defineHotspots() {
@@ -85,6 +148,16 @@ class MenuActivity : Activity() {
             lp.width = ((h.r - h.l) * dw).toInt()
             lp.height = ((h.b - h.t) * dh).toInt()
             views[i].layoutParams = lp
+        }
+
+        // Barre de stats sur la zone libérée en bas
+        if (::statsBar.isInitialized) {
+            val lp = statsBar.layoutParams as FrameLayout.LayoutParams
+            lp.leftMargin = (ox + STATS_RECT[0] * dw).toInt()
+            lp.topMargin = (oy + STATS_RECT[1] * dh).toInt()
+            lp.width = ((STATS_RECT[2] - STATS_RECT[0]) * dw).toInt()
+            lp.height = ((STATS_RECT[3] - STATS_RECT[1]) * dh).toInt()
+            statsBar.layoutParams = lp
         }
     }
 

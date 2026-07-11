@@ -73,6 +73,8 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     @Volatile private var finalMs = 0L
     @Volatile private var moves = 0
     private var scrambleRemaining = 0
+    private var armed = false          // true = une victoire peut être enregistrée
+    private var manualMoves = 0        // coups manuels depuis le dernier reset/scramble
     private val winLock = Any()
     private var pendingWin: LongArray? = null   // [timeMs, moves, size]
 
@@ -110,6 +112,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val layers = FloatArray(n) { it - half }
         val count = when (n) { 2 -> 12; 3 -> 20; 4 -> 30; else -> 40 }
         timing = false; moves = 0; finalMs = 0
+        armed = false; manualMoves = 0
         scrambleRemaining = count
         repeat(count) {
             val axis = rng.nextInt(3)
@@ -212,6 +215,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             animating = false
             animAngle = 0f
             timing = false; moves = 0; finalMs = 0; scrambleRemaining = 0
+            armed = false; manualMoves = 0
             synchronized(winLock) { pendingWin = null }
             cubies = buildCubies()
         }
@@ -328,13 +332,19 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         if (scrambleRemaining > 0) {
             scrambleRemaining--
             if (scrambleRemaining == 0) {
+                armed = true
                 timing = true
                 startMs = SystemClock.elapsedRealtime()
                 moves = 0
+                manualMoves = 0
             }
-        } else if (timing) {
+        } else {
+            // coup manuel : démarre le chrono au 1er coup
+            if (!timing) { timing = true; startMs = SystemClock.elapsedRealtime() }
             moves++
-            if (isSolved()) {
+            manualMoves++
+            if (!armed && manualMoves >= 10) armed = true   // évite les faux records
+            if (armed && isSolved()) {
                 timing = false
                 finalMs = SystemClock.elapsedRealtime() - startMs
                 synchronized(winLock) {

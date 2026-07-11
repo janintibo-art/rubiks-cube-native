@@ -36,6 +36,13 @@ object Stats {
     fun bestTime(ctx: Context, size: Int): Long = p(ctx).getLong("time_$size", -1L)
     fun bestMoves(ctx: Context, size: Int): Int = p(ctx).getInt("moves_$size", -1)
 
+    // ---------- Progression : XP / Niveau / Gemmes ----------
+    const val XP_PER_LEVEL = 1000L
+    fun totalXp(ctx: Context): Long = p(ctx).getLong("xp", 0L)
+    fun gems(ctx: Context): Long = p(ctx).getLong("gems", 0L)
+    fun level(ctx: Context): Int = (totalXp(ctx) / XP_PER_LEVEL).toInt() + 1
+    fun xpInLevel(ctx: Context): Long = totalXp(ctx) % XP_PER_LEVEL
+
     fun isUnlocked(ctx: Context, id: String) = p(ctx).getBoolean("ach_$id", false)
     fun challengeDone(ctx: Context, id: String) = p(ctx).getBoolean("chal_$id", false)
 
@@ -69,12 +76,24 @@ object Stats {
         val newRecordTime: Boolean,
         val newAchievements: List<String>,
         val newChallenges: List<String>,
-        val dailyRecord: Boolean
+        val dailyRecord: Boolean,
+        val xpGained: Int,
+        val gemsGained: Int,
+        val leveledUp: Boolean
     )
 
     fun recordWin(ctx: Context, size: Int, timeMs: Long, moves: Int, isDaily: Boolean): WinReport {
         val pr = p(ctx)
         val e = pr.edit()
+
+        val levelBefore = level(ctx)
+
+        // Récompenses XP / gemmes
+        val baseXp = when (size) { 2 -> 30; 3 -> 60; 4 -> 120; else -> 200 }
+        val xpGain = baseXp + if (isDaily) 50 else 0
+        val gemGain = size * 2 + if (isDaily) 5 else 0
+        e.putLong("xp", pr.getLong("xp", 0L) + xpGain)
+        e.putLong("gems", pr.getLong("gems", 0L) + gemGain)
 
         // Records par taille
         val prevT = pr.getLong("time_$size", -1L)
@@ -133,7 +152,8 @@ object Stats {
                 newAch.add(ACHIEVEMENTS.first { it.first == "all" }.second)
             }
         }
-        return WinReport(recordTime, newAch, newChal, dailyRecord)
+        val leveledUp = level(ctx) > levelBefore
+        return WinReport(recordTime, newAch, newChal, dailyRecord, xpGain, gemGain, leveledUp)
     }
 
     fun formatTime(ms: Long): String {
