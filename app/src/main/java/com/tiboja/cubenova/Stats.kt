@@ -60,6 +60,14 @@ object Stats {
     fun setSoundOn(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("sound_on", v).apply()
     fun setVibrateOn(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("vibrate_on", v).apply()
 
+    // Musique de fond
+    fun musicOn(ctx: Context) = p(ctx).getBoolean("music_on", true)
+    fun setMusicOn(ctx: Context, v: Boolean) = p(ctx).edit().putBoolean("music_on", v).apply()
+    fun musicVolume(ctx: Context) = p(ctx).getInt("music_vol", 50)          // 0..100
+    fun setMusicVolume(ctx: Context, v: Int) = p(ctx).edit().putInt("music_vol", v.coerceIn(0, 100)).apply()
+    fun musicTrack(ctx: Context) = p(ctx).getInt("music_track", 0)
+    fun setMusicTrack(ctx: Context, v: Int) = p(ctx).edit().putInt("music_track", v).apply()
+
     // ---------- Défi du jour ----------
     /** Clé du jour au format AAAAMMJJ (locale). */
     fun todayKey(): Long {

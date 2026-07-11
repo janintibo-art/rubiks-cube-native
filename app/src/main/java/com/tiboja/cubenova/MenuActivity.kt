@@ -73,6 +73,13 @@ class MenuActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refreshStats()
+        Sound.init(this)
+        Music.start(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Music.pause()
     }
 
     private fun buildStatsBar() {
@@ -178,18 +185,7 @@ class MenuActivity : Activity() {
     }
 
     private fun openSettings() {
-        val items = arrayOf("🔊 Son", "📳 Vibration")
-        val checked = booleanArrayOf(Stats.soundOn(this), Stats.vibrateOn(this))
-        AlertDialog.Builder(this, R.style.NeonDialog)
-            .setTitle("⚙ Paramètres")
-            .setMultiChoiceItems(items, checked) { _, which, isChecked -> checked[which] = isChecked }
-            .setPositiveButton("Enregistrer") { _, _ ->
-                Stats.setSoundOn(this, checked[0])
-                Stats.setVibrateOn(this, checked[1])
-                Sound.refresh(this)
-            }
-            .setNegativeButton("Annuler", null)
-            .show()
+        SettingsDialog.show(this)
     }
 
     private fun showChallenges() {

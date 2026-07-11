@@ -246,18 +246,7 @@ class MainActivity : Activity() {
     }
 
     private fun showSettings() {
-        val items = arrayOf("🔊 Son", "📳 Vibration")
-        val checked = booleanArrayOf(Stats.soundOn(this), Stats.vibrateOn(this))
-        dialog()
-            .setTitle("⚙ Paramètres")
-            .setMultiChoiceItems(items, checked) { _, which, isChecked -> checked[which] = isChecked }
-            .setPositiveButton("Enregistrer") { _, _ ->
-                Stats.setSoundOn(this, checked[0])
-                Stats.setVibrateOn(this, checked[1])
-                Sound.refresh(this)
-            }
-            .setNegativeButton("Annuler", null)
-            .show()
+        SettingsDialog.show(this)
     }
 
     private fun showThemeChooser() {
@@ -309,6 +298,13 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onResume() { super.onResume(); glView.onResume(); handler.post(ticker) }
-    override fun onPause() { super.onPause(); glView.onPause(); handler.removeCallbacks(ticker) }
+    override fun onResume() {
+        super.onResume(); glView.onResume(); handler.post(ticker)
+        Music.start(this)
+    }
+
+    override fun onPause() {
+        super.onPause(); glView.onPause(); handler.removeCallbacks(ticker)
+        Music.pause()
+    }
 }
