@@ -41,6 +41,13 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var normalHandle = 0
     private var localUvHandle = 0
     private var modelHandle = 0
+
+    // Fond dégradé (halo néon derrière le cube)
+    private var bgProgram = 0
+    private var bgPosHandle = 0
+    private var bgAspectHandle = 0
+    private var bgBuffer: java.nio.FloatBuffer? = null
+    private var aspect = 1f
     private var samplerHandle = 0
 
     private var textureId = 0
@@ -199,6 +206,21 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         textureId = ids[0]
         loadedAtlas = null
 
+        // --- Fond : halo néon plein écran ---
+        val bgVs = loadShader(GLES20.GL_VERTEX_SHADER, BG_VERTEX_SRC)
+        val bgFs = loadShader(GLES20.GL_FRAGMENT_SHADER, BG_FRAGMENT_SRC)
+        bgProgram = GLES20.glCreateProgram()
+        GLES20.glAttachShader(bgProgram, bgVs)
+        GLES20.glAttachShader(bgProgram, bgFs)
+        GLES20.glLinkProgram(bgProgram)
+        bgPosHandle = GLES20.glGetAttribLocation(bgProgram, "aPos")
+        bgAspectHandle = GLES20.glGetUniformLocation(bgProgram, "uAspect")
+
+        val quad = floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)
+        bgBuffer = java.nio.ByteBuffer.allocateDirect(quad.size * 4)
+            .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().put(quad)
+        bgBuffer?.position(0)
+
         Matrix.setIdentityM(global, 0)
         Matrix.rotateM(global, 0, -30f, 1f, 0f, 0f)
         Matrix.rotateM(global, 0, -35f, 0f, 1f, 0f)
@@ -207,6 +229,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
         val ratio = width.toFloat() / height.toFloat()
+        aspect = ratio
         Matrix.perspectiveM(projection, 0, 45f, ratio, 1f, 100f)
         // Caméra un peu reculée et cube légèrement remonté : dégage les commandes du bas
         Matrix.setLookAtM(view, 0, 0f, -0.35f, 10.5f, 0f, -0.35f, 0f, 0f, 1f, 0f)
@@ -228,6 +251,19 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+
+        // Halo de fond (sans test de profondeur, dessiné en premier)
+        bgBuffer?.let { buf ->
+            GLES20.glDisable(GLES20.GL_DEPTH_TEST)
+            GLES20.glUseProgram(bgProgram)
+            GLES20.glUniform1f(bgAspectHandle, aspect)
+            buf.position(0)
+            GLES20.glVertexAttribPointer(bgPosHandle, 2, GLES20.GL_FLOAT, false, 0, buf)
+            GLES20.glEnableVertexAttribArray(bgPosHandle)
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+            GLES20.glDisableVertexAttribArray(bgPosHandle)
+            GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+        }
 
         if (loadedAtlas != pendingAtlas) loadAtlas(pendingAtlas)
 
@@ -417,6 +453,36 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     companion object {
+        // --- Fond : halo néon radial ---
+        private const val BG_VERTEX_SRC = """
+            attribute vec2 aPos;
+            varying vec2 vPos;
+            void main() {
+                vPos = aPos;
+                gl_Position = vec4(aPos, 0.999, 1.0);
+            }
+        """
+        private const val BG_FRAGMENT_SRC = """
+            precision mediump float;
+            uniform float uAspect;
+            varying vec2 vPos;
+            void main() {
+                vec2 p = vPos;
+                p.x *= uAspect;
+                float r = length(p);
+
+                vec3 deep = vec3(0.020, 0.020, 0.045);   // bords : nuit profonde
+                vec3 glow = vec3(0.075, 0.115, 0.230);   // centre : lueur bleutée
+
+                float halo = exp(-r * r * 1.35);                       // lueur centrale douce
+                vec3 col = mix(deep, glow, halo);
+                col += vec3(0.030, 0.055, 0.100) * exp(-r * r * 4.5);  // coeur plus lumineux
+                col *= 1.0 - 0.22 * smoothstep(0.7, 1.6, r);           // vignettage
+
+                gl_FragColor = vec4(col, 1.0);
+            }
+        """
+
         private const val VERTEX_SRC = """
             uniform mat4 uMVP;
             uniform mat4 uModel;     // rotation monde de la pièce (pour la normale)
@@ -447,36 +513,58 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
             void main() {
                 if (vTex < 0.5) {
-                    // Face interne : plastique sombre
                     gl_FragColor = vec4(0.03, 0.03, 0.045, 1.0);
                     return;
                 }
 
                 vec3 base = texture2D(uTexture, vUV).rgb;
 
-                // --- Liseré sombre autour du sticker (comme un vrai Rubik's) ---
-                vec2 d = min(vLocalUV, 1.0 - vLocalUV);   // distance au bord (0 au bord)
+                // --- Géométrie du sticker : distance au bord ---
+                vec2 d = min(vLocalUV, 1.0 - vLocalUV);
                 float edge = min(d.x, d.y);
-                float border = smoothstep(0.0, 0.055, edge);          // 0 au bord -> 1 au centre
-                float inner  = smoothstep(0.055, 0.085, edge);        // petit chanfrein clair
+
+                const float GAP   = 0.030;   // rainure noire entre stickers
+                const float BEVEL = 0.085;   // largeur du chanfrein
+
+                // Normale perturbée : le chanfrein s'incline vers l'extérieur (relief bombé)
+                vec3 N = normalize(vNormal);
+                if (edge < BEVEL) {
+                    float t = 1.0 - edge / BEVEL;               // 1 au bord, 0 à la fin du chanfrein
+                    // direction du bord le plus proche, dans le plan du sticker
+                    vec2 dir = vec2(0.0);
+                    if (d.x < d.y) dir.x = (vLocalUV.x < 0.5) ? -1.0 : 1.0;
+                    else           dir.y = (vLocalUV.y < 0.5) ? -1.0 : 1.0;
+                    // base tangente approximative dérivée de la normale
+                    vec3 T = normalize(abs(N.y) > 0.9 ? vec3(1.0, 0.0, 0.0) : cross(vec3(0.0, 1.0, 0.0), N));
+                    vec3 B = cross(N, T);
+                    vec3 bend = dir.x * T + dir.y * B;
+                    N = normalize(N + bend * t * 0.85);         // arrondi du bord
+                }
 
                 // --- Éclairage ---
-                vec3 N = normalize(vNormal);
-                vec3 L = normalize(vec3(0.45, 0.75, 0.55));   // lumière principale
-                vec3 V = vec3(0.0, 0.0, 1.0);                 // vue (caméra +Z)
-                float diff = max(dot(N, L), 0.0);
-                float ambient = 0.62;
-                float lambert = ambient + 0.42 * diff;
+                vec3 L1 = normalize(vec3(0.40, 0.80, 0.55));    // clé
+                vec3 L2 = normalize(vec3(-0.60, -0.25, 0.45));  // contre-jour froid
+                vec3 V  = vec3(0.0, 0.0, 1.0);
 
-                // Spéculaire (brillance plastique)
-                vec3 H = normalize(L + V);
-                float spec = pow(max(dot(N, H), 0.0), 26.0) * 0.30;
+                float diff = max(dot(N, L1), 0.0);
+                float rim  = max(dot(N, L2), 0.0);
+                float ambient = 0.55;
+                float lambert = ambient + 0.45 * diff + 0.14 * rim;
 
-                // Chanfrein : les bords du sticker captent un peu plus la lumière
-                float bevel = mix(1.18, 1.0, inner);
+                // Spéculaire large (plastique verni)
+                vec3 H1 = normalize(L1 + V);
+                float spec = pow(max(dot(N, H1), 0.0), 32.0) * 0.42;
 
-                vec3 color = base * lambert * bevel + vec3(spec);
-                color *= mix(0.10, 1.0, border);   // assombrit fortement le contour
+                // Réflexion d'environnement : teinte néon selon l'orientation
+                vec3 envTint = mix(vec3(0.10, 0.16, 0.34), vec3(0.30, 0.55, 0.75), N.y * 0.5 + 0.5);
+                float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);   // Fresnel : bords plus brillants
+                vec3 env = envTint * fres * 0.55;
+
+                vec3 color = base * lambert + vec3(spec) + env;
+
+                // --- Rainure noire entre les stickers ---
+                float groove = smoothstep(0.0, GAP, edge);
+                color *= mix(0.06, 1.0, groove);
 
                 gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
             }

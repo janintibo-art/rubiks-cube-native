@@ -115,52 +115,58 @@
         android:layout_marginStart="20dp"
         android:layout_marginBottom="26dp" />
 
-    <!-- Actions : icônes compactes, alignées à droite du joystick -->
+    <!-- Actions : disposition pyramidale compacte (coin bas droit) -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingEnd="18dp"
-        android:paddingBottom="56dp">
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingEnd="20dp"
+        android:paddingBottom="52dp">
 
-        <Button
-            android:id="@+id/btnUndo"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/btn_round"
-            android:textColor="#EAEAFF"
-            android:text="↩"
-            android:textSize="24sp"
-            android:textAllCaps="false"
-            android:paddingLeft="0dp"
-            android:paddingRight="0dp"
-            android:contentDescription="Annuler" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btnScramble"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/btn_round"
-            android:textColor="#EAEAFF"
-            android:text="🔀"
-            android:textSize="22sp"
-            android:textAllCaps="false"
-            android:paddingLeft="0dp"
-            android:paddingRight="0dp"
-            android:contentDescription="Mélanger" />
+            <Button
+                android:id="@+id/btnUndo"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/btn_round"
+                android:textColor="#EAEAFF"
+                android:text="↩"
+                android:textSize="19sp"
+                android:textAllCaps="false"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:contentDescription="Annuler" />
+
+            <Button
+                android:id="@+id/btnScramble"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:background="@drawable/btn_round"
+                android:textColor="#EAEAFF"
+                android:text="🔀"
+                android:textSize="17sp"
+                android:textAllCaps="false"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:contentDescription="Mélanger" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnReset"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="10dp"
             android:background="@drawable/btn_round"
             android:textColor="#EAEAFF"
             android:text="↺"
-            android:textSize="24sp"
+            android:textSize="19sp"
             android:textAllCaps="false"
             android:paddingLeft="0dp"
             android:paddingRight="0dp"
