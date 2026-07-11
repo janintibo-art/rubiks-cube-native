@@ -28,66 +28,64 @@
             android:textStyle="bold" />
 
         <Button
-            android:id="@+id/btnTheme"
+            android:id="@+id/btnLevel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🎨 Thème"
+            android:text="🎚 Niveau"
             android:textAllCaps="false"
             android:textSize="13sp" />
 
         <Button
-            android:id="@+id/btnDir"
+            android:id="@+id/btnTheme"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:text="Sens: horaire"
+            android:text="🎨 Thème"
             android:textAllCaps="false"
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Contrôles en bas -->
+    <!-- Joystick de rotation (coin bas gauche) -->
+    <com.example.rubikscube.JoystickView
+        android:id="@+id/joystick"
+        android:layout_width="130dp"
+        android:layout_height="130dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="26dp" />
+
+    <!-- Actions (coin bas droit) -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_gravity="bottom|end"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/btnScramble"
+            android:layout_width="140dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:text="🔀 Mélanger"
+            android:textAllCaps="false" />
 
-            <Button android:id="@+id/btnU" style="@style/Face" android:text="U" />
-            <Button android:id="@+id/btnD" style="@style/Face" android:text="D" />
-            <Button android:id="@+id/btnL" style="@style/Face" android:text="L" />
-            <Button android:id="@+id/btnR" style="@style/Face" android:text="R" />
-            <Button android:id="@+id/btnF" style="@style/Face" android:text="F" />
-            <Button android:id="@+id/btnB" style="@style/Face" android:text="B" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/btnReset"
+            android:layout_width="140dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp">
-
-            <Button
-                android:id="@+id/btnScramble"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Mélanger"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/btnReset"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Réinitialiser"
-                android:textAllCaps="false" />
-        </LinearLayout>
+            android:layout_marginTop="8dp"
+            android:text="↺ Réinitialiser"
+            android:textAllCaps="false" />
     </LinearLayout>
+
+    <!-- Astuce -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="150dp"
+        android:text="Glisse sur le cube pour tourner une face • joystick pour pivoter"
+        android:textColor="#88FFFFFF"
+        android:textSize="11sp"
+        android:gravity="center" />
 </FrameLayout>

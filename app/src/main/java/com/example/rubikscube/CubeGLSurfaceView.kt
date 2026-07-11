@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 class CubeGLSurfaceView @JvmOverloads constructor(
@@ -26,18 +27,18 @@ class CubeGLSurfaceView @JvmOverloads constructor(
     private val HALF = 1.46f          // demi-taille du cube visible (surface extérieure)
     private val TAP_THRESHOLD = 24f   // px : en dessous = simple tap
 
-    // Résultat du picking mémorisé à l'appui
+    // Résultat du picking mémorisé à l'appui (coordonnées centrées, float)
     private val invVPG = FloatArray(16)
     private var hitAxis = 0           // axe de la normale de la face touchée
     private var hitSign = 0
-    private var hitGx = 0
-    private var hitGy = 0
-    private var hitGz = 0
+    private var hitGx = 0f
+    private var hitGy = 0f
+    private var hitGz = 0f
     private var planeVal = 0f
 
     init {
         setEGLContextClientVersion(2)
-        renderer = CubeRenderer()
+        renderer = CubeRenderer(context)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
     }
@@ -106,9 +107,16 @@ class CubeGLSurfaceView @JvmOverloads constructor(
         hitSign = entrySign
         planeVal = entrySign * HALF
 
-        hitGx = clampGrid(if (entryAxis == 0) entrySign.toFloat() else hit[0])
-        hitGy = clampGrid(if (entryAxis == 1) entrySign.toFloat() else hit[1])
-        hitGz = clampGrid(if (entryAxis == 2) entrySign.toFloat() else hit[2])
+        // Coordonnées centrées (unités "cellule") de la pièce touchée, calées sur le réseau
+        val cell = renderer.getCell()
+        val half = (renderer.getSize() - 1) / 2f
+        fun snapLat(worldCoord: Float): Float {
+            val c = worldCoord / cell
+            return (c + half).roundToInt() - half
+        }
+        hitGx = if (entryAxis == 0) entrySign * half else snapLat(hit[0])
+        hitGy = if (entryAxis == 1) entrySign * half else snapLat(hit[1])
+        hitGz = if (entryAxis == 2) entrySign * half else snapLat(hit[2])
 
         return MODE_PICK
     }
@@ -180,11 +188,6 @@ class CubeGLSurfaceView @JvmOverloads constructor(
         Matrix.multiplyMV(out, 0, invVPG, 0, clip, 0)
         val w = if (out[3] != 0f) out[3] else 1f
         return floatArrayOf(out[0] / w, out[1] / w, out[2] / w)
-    }
-
-    private fun clampGrid(v: Float): Int {
-        val r = Math.round(v)
-        return if (r < -1) -1 else if (r > 1) 1 else r
     }
 
     companion object {

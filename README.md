@@ -6,12 +6,12 @@ GitHub Actions.
 
 ## ✨ Fonctionnalités
 - Rendu 3D natif OpenGL ES (27 pièces, faces colorées).
-- Rotation de la vue au doigt (dans le vide autour du cube).
-- **Rotation d'une face en glissant directement dessus** (picking 3D par lancer de rayon).
-- Boutons pour tourner chaque face (U, D, L, R, F, B).
-- Bascule sens horaire / anti-horaire.
+- **Tourne une face en glissant directement dessus** (picking 3D par lancer de rayon).
+- **Joystick** dédié pour pivoter la vue (plus de rotation accidentelle de ligne).
+- **25 thèmes texturés** (bouton 🎨) : Classique + Emoji, Monstres, Bonbons, Bureau + 20 Nature.
+- **4 niveaux de difficulté** (bouton 🎚) : Facile 2×2, Normal 3×3, Difficile 4×4, Extrême 5×5.
+- Les motifs sont collés en vraies textures : l'image se mélange comme un vrai Rubik's.
 - Mélange aléatoire + réinitialisation.
-- **20 thèmes de couleurs** (bouton 🎨) issus de tes 20 planches, avec aperçu.
 - Icône d'application personnalisée.
 - Aucune dépendance externe → build léger.
 
