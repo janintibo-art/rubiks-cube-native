@@ -165,5 +165,4 @@
             android:textAllCaps="false"
             android:textSize="14sp" />
     </LinearLayout>
-    </LinearLayout>
 </FrameLayout>
