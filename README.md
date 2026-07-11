@@ -8,7 +8,7 @@ GitHub Actions.
 - Rendu 3D natif OpenGL ES (27 pièces, faces colorées).
 - **Tourne une face en glissant directement dessus** (picking 3D par lancer de rayon).
 - **Joystick** dédié pour pivoter la vue (plus de rotation accidentelle de ligne).
-- **25 thèmes texturés** (bouton 🎨) : Classique + Emoji, Monstres, Bonbons, Bureau + 20 Nature.
+- **12 thèmes texturés** (bouton 🎨) : Classique + Manga, Elfe, Yggdrasil, Zen, Punk, Smile, Nature folie, Nature couleurs, Lot 1, Lot 2, Cube 6.
 - **4 niveaux de difficulté** (bouton 🎚) : Facile 2×2, Normal 3×3, Difficile 4×4, Extrême 5×5.
 - Les motifs sont collés en vraies textures : l'image se mélange comme un vrai Rubik's.
 - Mélange aléatoire + réinitialisation.
