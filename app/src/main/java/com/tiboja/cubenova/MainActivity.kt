@@ -16,6 +16,7 @@ import android.widget.GridView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 
 class MainActivity : Activity() {
 
@@ -80,10 +81,22 @@ class MainActivity : Activity() {
         btnUndo = findViewById(R.id.btnUndo)
         btnUndo.setOnClickListener { glView.renderer.undo() }
 
-        findViewById<Button>(R.id.btnScramble).setOnClickListener {
+        val btnScramble = findViewById<Button>(R.id.btnScramble)
+        btnScramble.setOnClickListener {
             if (dailyMode) glView.renderer.requestChallenge(3, dailySeed) else glView.renderer.scramble()
         }
-        findViewById<Button>(R.id.btnReset).setOnClickListener { confirmReset() }
+        val btnReset = findViewById<Button>(R.id.btnReset)
+        btnReset.setOnClickListener { confirmReset() }
+
+        // Appui long : rappelle le rôle de chaque icône
+        fun tip(v: View, label: String) {
+            v.setOnLongClickListener {
+                Toast.makeText(this, label, Toast.LENGTH_SHORT).show(); true
+            }
+        }
+        tip(btnUndo, "Annuler le dernier coup")
+        tip(btnScramble, "Mélanger")
+        tip(btnReset, "Réinitialiser")
 
         // Lancement
         if (intent.getBooleanExtra("daily", false)) {
