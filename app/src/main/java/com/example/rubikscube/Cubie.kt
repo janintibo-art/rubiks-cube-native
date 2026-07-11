@@ -23,6 +23,7 @@ class Cubie(
     private val cell: Float
 ) {
     val orientation = FloatArray(16)
+    val homeX = cx; val homeY = cy; val homeZ = cz   // position d'origine (cube résolu)
     private val vertexBuffer: FloatBuffer
     private val vertexCount: Int
 

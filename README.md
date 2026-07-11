@@ -5,6 +5,8 @@ Un Rubik's Cube 3D **100% natif Android**, écrit en **Kotlin** avec **OpenGL ES
 GitHub Actions.
 
 ## ✨ Fonctionnalités
+- **Chrono + compteur de coups** en jeu, avec **détection automatique du cube résolu**.
+- **Classement** (meilleurs temps/coups par taille) et **Succès** débloquables, sauvegardés en local.
 - **Écran d'accueil CubeNova** : boutons cliquables (Jouer, Modes, Paramètres… ).
 - Rendu 3D natif OpenGL ES (27 pièces, faces colorées).
 - **Tourne une face en glissant directement dessus** (picking 3D par lancer de rayon).

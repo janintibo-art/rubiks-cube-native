@@ -59,8 +59,8 @@ class MenuActivity : Activity() {
     private fun defineHotspots() {
         // Colonne gauche
         hotspots.add(Hotspot(0.01f, 0.545f, 0.17f, 0.625f) { soon("Défis") })
-        hotspots.add(Hotspot(0.01f, 0.632f, 0.17f, 0.712f) { soon("Classement") })
-        hotspots.add(Hotspot(0.01f, 0.715f, 0.17f, 0.795f) { soon("Succès") })
+        hotspots.add(Hotspot(0.01f, 0.632f, 0.17f, 0.712f) { showLeaderboard() })      // Classement
+        hotspots.add(Hotspot(0.01f, 0.715f, 0.17f, 0.795f) { showAchievements() })     // Succès
         // Colonne droite
         hotspots.add(Hotspot(0.83f, 0.545f, 0.99f, 0.625f) { chooseMode() })          // Modes
         hotspots.add(Hotspot(0.83f, 0.632f, 0.99f, 0.712f) { play(null) })            // Entraînement
@@ -109,6 +109,36 @@ class MenuActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle("Paramètres")
             .setMessage("CubeNova\nVersion 1.0\n\nLe thème et le niveau se choisissent aussi en jeu (boutons 🎨 et 🎚).")
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showLeaderboard() {
+        val sb = StringBuilder()
+        val names = mapOf(2 to "Facile 2×2", 3 to "Normal 3×3", 4 to "Difficile 4×4", 5 to "Extrême 5×5")
+        for (n in 2..5) {
+            val t = Stats.bestTime(this, n)
+            val m = Stats.bestMoves(this, n)
+            sb.append("${names[n]}\n")
+            sb.append("   Meilleur temps : ${Stats.formatTime(t)}")
+            sb.append("   |   Coups : ${if (m < 0) "—" else m}\n\n")
+        }
+        AlertDialog.Builder(this)
+            .setTitle("🏆 Classement")
+            .setMessage(sb.toString().trim())
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showAchievements() {
+        val sb = StringBuilder()
+        for ((id, label) in Stats.ACHIEVEMENTS) {
+            sb.append(if (Stats.isUnlocked(this, id)) "✅ " else "🔒 ")
+            sb.append(label).append("\n")
+        }
+        AlertDialog.Builder(this)
+            .setTitle("⭐ Succès")
+            .setMessage(sb.toString().trim())
             .setPositiveButton("OK", null)
             .show()
     }

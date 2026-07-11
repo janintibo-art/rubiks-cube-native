@@ -7,6 +7,7 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.opengl.Matrix
+import android.os.SystemClock
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -59,6 +60,15 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var animAngle = 0f
     private val animAxis = FloatArray(3)
 
+    // Chrono / compteur de coups / victoire
+    @Volatile private var timing = false
+    @Volatile private var startMs = 0L
+    @Volatile private var finalMs = 0L
+    @Volatile private var moves = 0
+    private var scrambleRemaining = 0
+    private val winLock = Any()
+    private var pendingWin: LongArray? = null   // [timeMs, moves, size]
+
     // Le cube conserve toujours ~2.92 unités monde de large (surface à ±1.46)
     private fun cellFor(n: Int): Float = 1.46f / (n / 2f - 0.04f)
 
@@ -82,6 +92,29 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     fun setSize(n: Int) { pendingSize = n; resetRequested = true }
     fun getSize(): Int = size
     fun getCell(): Float = cell
+
+    // --- Chrono / coups / victoire ---
+    fun scramble() {
+        val n = size
+        val half = (n - 1) / 2f
+        val layers = FloatArray(n) { it - half }
+        val count = when (n) { 2 -> 12; 3 -> 20; 4 -> 30; else -> 40 }
+        timing = false; moves = 0; finalMs = 0
+        scrambleRemaining = count
+        repeat(count) {
+            val axis = (0..2).random()
+            val layer = layers.random()
+            val dir = if (Math.random() > 0.5) 1 else -1
+            moveQueue.add(Move(axis, layer, dir))
+        }
+    }
+
+    fun isTiming(): Boolean = timing
+    fun elapsedMs(): Long = if (timing) SystemClock.elapsedRealtime() - startMs else finalMs
+    fun moveCount(): Int = moves
+    fun consumeWin(): LongArray? {
+        synchronized(winLock) { val w = pendingWin; pendingWin = null; return w }
+    }
     fun addDrag(dx: Float, dy: Float) { dragX += dx; dragY += dy }
     fun isBusy(): Boolean = animating || moveQueue.isNotEmpty()
 
@@ -150,6 +183,8 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             moveQueue.clear()
             animating = false
             animAngle = 0f
+            timing = false; moves = 0; finalMs = 0; scrambleRemaining = 0
+            synchronized(winLock) { pendingWin = null }
             cubies = buildCubies()
         }
 
@@ -232,6 +267,43 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             System.arraycopy(newOri, 0, c.orientation, 0, 16)
         }
         animating = false; animAngle = 0f
+
+        // Chrono / coups / victoire
+        if (scrambleRemaining > 0) {
+            scrambleRemaining--
+            if (scrambleRemaining == 0) {
+                timing = true
+                startMs = SystemClock.elapsedRealtime()
+                moves = 0
+            }
+        } else if (timing) {
+            moves++
+            if (isSolved()) {
+                timing = false
+                finalMs = SystemClock.elapsedRealtime() - startMs
+                synchronized(winLock) {
+                    pendingWin = longArrayOf(finalMs, moves.toLong(), size.toLong())
+                }
+            }
+        }
+    }
+
+    /** Le cube est résolu s'il est dans l'état d'origine, à une rotation globale près :
+     *  toutes les pièces partagent la même orientation R et sont à la position R·origine. */
+    private fun isSolved(): Boolean {
+        if (cubies.isEmpty()) return false
+        val R = cubies[0].orientation
+        val idx = intArrayOf(0, 1, 2, 4, 5, 6, 8, 9, 10) // partie rotation 3x3
+        val home = FloatArray(4)
+        val exp = FloatArray(4)
+        for (c in cubies) {
+            for (i in idx) if (abs(c.orientation[i] - R[i]) > 0.05f) return false
+            home[0] = c.homeX; home[1] = c.homeY; home[2] = c.homeZ; home[3] = 1f
+            Matrix.multiplyMV(exp, 0, R, 0, home, 0)
+            if (abs(exp[0] - c.cx) > 0.05f || abs(exp[1] - c.cy) > 0.05f || abs(exp[2] - c.cz) > 0.05f)
+                return false
+        }
+        return true
     }
 
     private fun loadShader(type: Int, src: String): Int {

@@ -45,6 +45,46 @@
             android:textSize="13sp" />
     </LinearLayout>
 
+    <!-- Chrono + coups -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="70dp"
+        android:orientation="horizontal"
+        android:background="#66000000"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/txtTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.0 s"
+            android:textColor="#4DD0E1"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:minWidth="90dp"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="  •  "
+            android:textColor="#88FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/txtMoves"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 coups"
+            android:textColor="#FFD54F"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:minWidth="90dp"
+            android:gravity="center" />
+    </LinearLayout>
+
     <!-- Joystick de rotation (coin bas gauche) -->
     <com.example.rubikscube.JoystickView
         android:id="@+id/joystick"
