@@ -11,6 +11,8 @@ GitHub Actions.
 - Boutons pour tourner chaque face (U, D, L, R, F, B).
 - Bascule sens horaire / anti-horaire.
 - Mélange aléatoire + réinitialisation.
+- **20 thèmes de couleurs** (bouton 🎨) issus de tes 20 planches, avec aperçu.
+- Icône d'application personnalisée.
 - Aucune dépendance externe → build léger.
 
 ## 📁 Arborescence

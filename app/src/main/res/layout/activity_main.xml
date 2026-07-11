@@ -28,9 +28,18 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/btnTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎨 Thème"
+            android:textAllCaps="false"
+            android:textSize="13sp" />
+
+        <Button
             android:id="@+id/btnDir"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
             android:text="Sens: horaire"
             android:textAllCaps="false"
             android:textSize="13sp" />

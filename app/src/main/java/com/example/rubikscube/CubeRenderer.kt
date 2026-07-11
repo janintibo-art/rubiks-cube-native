@@ -16,6 +16,7 @@ class CubeRenderer : GLSurfaceView.Renderer {
 
     private val moveQueue = ConcurrentLinkedQueue<Move>()
     @Volatile private var resetRequested = false
+    @Volatile private var palette: IntArray = Themes.CLASSIC
 
     private var program = 0
     private var positionHandle = 0
@@ -52,7 +53,7 @@ class CubeRenderer : GLSurfaceView.Renderer {
     private fun buildCubies(): MutableList<Cubie> {
         val list = ArrayList<Cubie>(27)
         for (x in -1..1) for (y in -1..1) for (z in -1..1)
-            list.add(Cubie(x, y, z))
+            list.add(Cubie(x, y, z, palette))
         return list
     }
 
@@ -70,6 +71,12 @@ class CubeRenderer : GLSurfaceView.Renderer {
     }
 
     fun requestReset() { resetRequested = true }
+
+    /** Change de thème : applique une nouvelle palette et reconstruit le cube. */
+    fun setPalette(newPalette: IntArray) {
+        palette = newPalette
+        resetRequested = true
+    }
     fun addDrag(dx: Float, dy: Float) { dragX += dx; dragY += dy }
     fun isBusy(): Boolean = animating || moveQueue.isNotEmpty()
 

@@ -12,7 +12,7 @@ import java.nio.FloatBuffer
  * orientation (matrice qui accumule les rotations de 90°) et sa géométrie
  * colorée (les faces extérieures sont peintes, les faces internes en noir).
  */
-class Cubie(var gx: Int, var gy: Int, var gz: Int) {
+class Cubie(var gx: Int, var gy: Int, var gz: Int, palette: IntArray) {
 
     val orientation = FloatArray(16)
     private val vertexBuffer: FloatBuffer
@@ -21,14 +21,14 @@ class Cubie(var gx: Int, var gy: Int, var gz: Int) {
     init {
         Matrix.setIdentityM(orientation, 0)
 
-        // Couleurs façon Rubik's : +Z rouge, -Z orange, +X bleu, -X vert, +Y blanc, -Y jaune
+        // palette : [front(+Z), back(-Z), right(+X), left(-X), top(+Y), bottom(-Y)]
         val black = floatArrayOf(0.04f, 0.04f, 0.05f)
-        val front  = if (gz == 1)  floatArrayOf(0.80f, 0.05f, 0.05f) else black // +Z rouge
-        val back   = if (gz == -1) floatArrayOf(1.00f, 0.45f, 0.00f) else black // -Z orange
-        val right  = if (gx == 1)  floatArrayOf(0.00f, 0.30f, 0.90f) else black // +X bleu
-        val left   = if (gx == -1) floatArrayOf(0.00f, 0.60f, 0.15f) else black // -X vert
-        val top    = if (gy == 1)  floatArrayOf(0.92f, 0.92f, 0.92f) else black // +Y blanc
-        val bottom = if (gy == -1) floatArrayOf(1.00f, 0.85f, 0.00f) else black // -Y jaune
+        val front  = if (gz == 1)  rgb(palette[0]) else black
+        val back   = if (gz == -1) rgb(palette[1]) else black
+        val right  = if (gx == 1)  rgb(palette[2]) else black
+        val left   = if (gx == -1) rgb(palette[3]) else black
+        val top    = if (gy == 1)  rgb(palette[4]) else black
+        val bottom = if (gy == -1) rgb(palette[5]) else black
 
         val data = buildGeometry(front, back, right, left, top, bottom)
         vertexCount = data.size / 6
@@ -39,6 +39,12 @@ class Cubie(var gx: Int, var gy: Int, var gz: Int) {
             .put(data)
         vertexBuffer.position(0)
     }
+
+    private fun rgb(color: Int): FloatArray = floatArrayOf(
+        ((color shr 16) and 0xFF) / 255f,
+        ((color shr 8) and 0xFF) / 255f,
+        (color and 0xFF) / 255f
+    )
 
     /** Construit 6 faces (2 triangles chacune). 6 floats par sommet : x,y,z,r,g,b. */
     private fun buildGeometry(
