@@ -16,6 +16,7 @@ class CubeGLSurfaceView @JvmOverloads constructor(
 ) : GLSurfaceView(context, attrs) {
 
     val renderer: CubeRenderer
+    var allowOrbit = true   // false en mode directionnel : le cube reste de face
 
     private var lastX = 0f
     private var lastY = 0f
@@ -49,6 +50,7 @@ class CubeGLSurfaceView @JvmOverloads constructor(
                 startX = event.x; startY = event.y
                 lastX = event.x; lastY = event.y
                 mode = decideMode(event.x, event.y)
+                if (mode == MODE_ORBIT && !allowOrbit) mode = MODE_NONE
             }
             MotionEvent.ACTION_MOVE -> {
                 if (mode == MODE_ORBIT) {

@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Barre supérieure -->
+    <!-- Barre supérieure : titre + bouton menu -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,25 +24,43 @@
             android:layout_weight="1"
             android:text="@string/app_name"
             android:textColor="#EEEEEE"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <Button
-            android:id="@+id/btnLevel"
+            android:id="@+id/btnMenu"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🎚 Niveau"
+            android:background="@drawable/btn_neon"
+            android:text="☰ Menu"
+            android:textColor="#EAEAFF"
             android:textAllCaps="false"
-            android:textSize="13sp" />
+            android:paddingLeft="18dp"
+            android:paddingRight="18dp"
+            android:textSize="14sp" />
+    </LinearLayout>
 
-        <Button
-            android:id="@+id/btnTheme"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="🎨 Thème"
-            android:textAllCaps="false"
-            android:textSize="13sp" />
+    <!-- Panneau de menu rétractable (caché par défaut) -->
+    <LinearLayout
+        android:id="@+id/menuPanel"
+        android:layout_width="210dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="66dp"
+        android:layout_marginEnd="14dp"
+        android:orientation="vertical"
+        android:background="@drawable/panel_bg"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <Button android:id="@+id/miLevel" style="@style/MenuItemButton" android:text="🎚  Niveau" />
+        <Button android:id="@+id/miTheme" style="@style/MenuItemButton" android:text="🎨  Thème" />
+        <Button android:id="@+id/miView" style="@style/MenuItemButton" android:text="🧭  Vue : Libre" />
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#3D4CCF" android:layout_marginTop="4dp" android:layout_marginBottom="8dp" />
+        <Button android:id="@+id/miChallenges" style="@style/MenuItemButton" android:text="🎯  Défis" />
+        <Button android:id="@+id/miLeaderboard" style="@style/MenuItemButton" android:text="🏆  Classement" />
+        <Button android:id="@+id/miAchievements" style="@style/MenuItemButton" android:text="⭐  Succès" />
     </LinearLayout>
 
     <!-- Chrono + coups -->
@@ -50,7 +68,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="70dp"
+        android:layout_marginTop="66dp"
         android:orientation="horizontal"
         android:background="#66000000"
         android:padding="8dp">
@@ -117,16 +135,4 @@
             android:text="↺ Réinitialiser"
             android:textAllCaps="false" />
     </LinearLayout>
-
-    <!-- Bouton mode de vue (au-dessus du joystick) -->
-    <Button
-        android:id="@+id/btnViewMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="20dp"
-        android:layout_marginBottom="166dp"
-        android:text="Vue: Libre"
-        android:textAllCaps="false"
-        android:textSize="12sp" />
 </FrameLayout>

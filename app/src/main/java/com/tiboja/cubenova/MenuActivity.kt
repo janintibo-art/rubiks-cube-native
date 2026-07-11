@@ -97,7 +97,7 @@ class MenuActivity : Activity() {
     private fun chooseMode() {
         val labels = arrayOf("Facile — 2×2", "Normal — 3×3", "Difficile — 4×4", "Extrême — 5×5")
         val sizes = intArrayOf(2, 3, 4, 5)
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("Modes")
             .setItems(labels) { _, which -> play(sizes[which]) }
             .setNegativeButton("Annuler", null)
@@ -105,9 +105,9 @@ class MenuActivity : Activity() {
     }
 
     private fun openSettings() {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("Paramètres")
-            .setMessage("CubeNova\nVersion 1.0\n\nLe thème et le niveau se choisissent aussi en jeu (boutons 🎨 et 🎚).")
+            .setMessage("CubeNova\nVersion 1.0\n\nNiveau, thème et options sont aussi accessibles en jeu via le menu ☰.")
             .setPositiveButton("OK", null)
             .show()
     }
@@ -118,7 +118,7 @@ class MenuActivity : Activity() {
             sb.append(if (Stats.challengeDone(this, id)) "✅ " else "⬜ ")
             sb.append(label).append("\n")
         }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("🎯 Défis")
             .setMessage(sb.toString().trim())
             .setPositiveButton("OK", null)
@@ -138,7 +138,7 @@ class MenuActivity : Activity() {
         } else {
             sb.append("Pas encore résolu aujourd'hui.")
         }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("🗓 Défi du jour")
             .setMessage(sb.toString())
             .setPositiveButton(if (done) "Rejouer" else "Jouer") { _, _ ->
@@ -160,7 +160,7 @@ class MenuActivity : Activity() {
             sb.append("   Meilleur temps : ${Stats.formatTime(t)}")
             sb.append("   |   Coups : ${if (m < 0) "—" else m}\n\n")
         }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("🏆 Classement")
             .setMessage(sb.toString().trim())
             .setPositiveButton("OK", null)
@@ -173,7 +173,7 @@ class MenuActivity : Activity() {
             sb.append(if (Stats.isUnlocked(this, id)) "✅ " else "🔒 ")
             sb.append(label).append("\n")
         }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("⭐ Succès")
             .setMessage(sb.toString().trim())
             .setPositiveButton("OK", null)

@@ -30,6 +30,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var snapLeft = 0f
     private var snapAxisIdx = 1
     private var snapDir = 1
+    @Volatile private var pendingView = 0   // 0 rien, 1 plat (face), 2 isométrique
     private var cell = cellFor(3)
 
     private var program = 0
@@ -138,6 +139,11 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         if (snapLeft > 0f) return   // une rotation à la fois
         snapAxisIdx = axisIdx; snapDir = dir; snapLeft = 90f
     }
+
+    /** Vue plate : une face bien en face (mode directionnel). */
+    fun setViewFlat() { pendingView = 1 }
+    /** Vue isométrique : 3 faces visibles (mode libre). */
+    fun setViewIso() { pendingView = 2 }
     fun isBusy(): Boolean = animating || moveQueue.isNotEmpty()
 
     fun copyVPG(out: FloatArray): Boolean {
@@ -214,6 +220,17 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         pendingScrambleSeed?.let { seed ->
             pendingScrambleSeed = null
             doScramble(java.util.Random(seed))
+        }
+
+        // Changement de vue (plat / isométrique)
+        when (pendingView) {
+            1 -> { Matrix.setIdentityM(global, 0); snapLeft = 0f; pendingView = 0 }
+            2 -> {
+                Matrix.setIdentityM(global, 0)
+                Matrix.rotateM(global, 0, -30f, 1f, 0f, 0f)
+                Matrix.rotateM(global, 0, -35f, 0f, 1f, 0f)
+                snapLeft = 0f; pendingView = 0
+            }
         }
 
         if (dragX != 0f || dragY != 0f) {

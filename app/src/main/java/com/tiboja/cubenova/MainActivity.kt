@@ -22,17 +22,20 @@ class MainActivity : Activity() {
     private lateinit var glView: CubeGLSurfaceView
     private lateinit var txtTimer: TextView
     private lateinit var txtMoves: TextView
+    private lateinit var menuPanel: View
+    private lateinit var joystick: JoystickView
+    private lateinit var miView: Button
 
     private var dailyMode = false
     private var dailySeed = 0L
+    private var directional = false
 
     private val handler = Handler(Looper.getMainLooper())
     private val ticker = object : Runnable {
-        override fun run() {
-            updateHud()
-            handler.postDelayed(this, 100)
-        }
+        override fun run() { updateHud(); handler.postDelayed(this, 100) }
     }
+
+    private fun dialog() = AlertDialog.Builder(this, R.style.NeonDialog)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,34 +44,37 @@ class MainActivity : Activity() {
         glView = findViewById(R.id.glView)
         txtTimer = findViewById(R.id.txtTimer)
         txtMoves = findViewById(R.id.txtMoves)
+        menuPanel = findViewById(R.id.menuPanel)
+        joystick = findViewById(R.id.joystick)
+        miView = findViewById(R.id.miView)
 
-        val joystick = findViewById<JoystickView>(R.id.joystick)
+        // Joystick
         joystick.onMove = { nx, ny -> glView.renderer.addDrag(nx * 3.2f, ny * 3.2f) }
         joystick.onDirection = { dx, dy ->
             if (dx != 0) glView.renderer.snapView(1, if (dx > 0) -1 else 1)   // gauche/droite → axe Y
             else glView.renderer.snapView(0, if (dy > 0) 1 else -1)           // haut/bas → axe X
         }
 
-        // Bascule mode de vue (libre / directionnel), mémorisée
-        val btnView = findViewById<Button>(R.id.btnViewMode)
-        var directional = Stats.viewDirectional(this)
-        joystick.directional = directional
-        btnView.text = if (directional) "Vue: Directionnel" else "Vue: Libre"
-        btnView.setOnClickListener {
-            directional = !directional
-            joystick.directional = directional
-            Stats.setViewDirectional(this, directional)
-            btnView.text = if (directional) "Vue: Directionnel" else "Vue: Libre"
-        }
+        // Mode de vue mémorisé
+        directional = Stats.viewDirectional(this)
+        applyViewMode(initial = true)
 
-        findViewById<Button>(R.id.btnTheme).setOnClickListener { showThemeChooser() }
-        findViewById<Button>(R.id.btnLevel).setOnClickListener { showLevelChooser() }
+        // Menu rétractable
+        findViewById<Button>(R.id.btnMenu).setOnClickListener { toggleMenu() }
+        findViewById<Button>(R.id.miLevel).setOnClickListener { closeMenu(); showLevelChooser() }
+        findViewById<Button>(R.id.miTheme).setOnClickListener { closeMenu(); showThemeChooser() }
+        miView.setOnClickListener { toggleViewMode() }
+        findViewById<Button>(R.id.miChallenges).setOnClickListener { closeMenu(); showChallenges() }
+        findViewById<Button>(R.id.miLeaderboard).setOnClickListener { closeMenu(); showLeaderboard() }
+        findViewById<Button>(R.id.miAchievements).setOnClickListener { closeMenu(); showAchievements() }
+
+        // Actions
         findViewById<Button>(R.id.btnScramble).setOnClickListener {
             if (dailyMode) glView.renderer.requestChallenge(3, dailySeed) else glView.renderer.scramble()
         }
         findViewById<Button>(R.id.btnReset).setOnClickListener { glView.renderer.requestReset() }
 
-        // Lancement : Défi du jour, ou taille choisie depuis Modes
+        // Lancement
         if (intent.getBooleanExtra("daily", false)) {
             dailyMode = true
             dailySeed = Stats.dailySeed()
@@ -78,21 +84,42 @@ class MainActivity : Activity() {
             if (startSize in 2..5) glView.renderer.setSize(startSize)
         }
 
-        // Pop-up d'aide (une seule fois)
+        // Aide (une seule fois)
         if (!Stats.isHelpSeen(this)) {
             Stats.setHelpSeen(this)
-            AlertDialog.Builder(this)
+            dialog()
                 .setTitle("Comment jouer")
                 .setMessage(
                     "• Glisse sur le cube pour tourner une face.\n" +
-                    "• Utilise le joystick pour pivoter la vue.\n" +
-                    "• Bouton « Vue » : passe du mode Libre au mode Directionnel " +
-                    "(haut/bas/gauche/droite qui tourne le cube face par face).\n\n" +
-                    "Mélange le cube, puis remets l'image en ordre le plus vite possible !"
+                    "• Joystick pour pivoter la vue.\n" +
+                    "• Menu ☰ : Niveau, Thème, mode de Vue, Défis, Classement, Succès.\n\n" +
+                    "Mode Vue :\n" +
+                    "  – Libre : rotation fluide.\n" +
+                    "  – Directionnel : le cube reste de face et bascule face par face.\n\n" +
+                    "Mélange, puis remets l'image en ordre !"
                 )
                 .setPositiveButton("C'est parti !", null)
                 .show()
         }
+    }
+
+    // ---------- Menu rétractable ----------
+    private fun toggleMenu() {
+        menuPanel.visibility = if (menuPanel.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+    }
+    private fun closeMenu() { menuPanel.visibility = View.GONE }
+
+    // ---------- Mode de vue ----------
+    private fun toggleViewMode() {
+        directional = !directional
+        Stats.setViewDirectional(this, directional)
+        applyViewMode(initial = false)
+    }
+    private fun applyViewMode(initial: Boolean) {
+        joystick.directional = directional
+        glView.allowOrbit = !directional
+        miView.text = if (directional) "🧭  Vue : Directionnel" else "🧭  Vue : Libre"
+        if (directional) glView.renderer.setViewFlat() else if (!initial) glView.renderer.setViewIso()
     }
 
     private fun updateHud() {
@@ -121,7 +148,7 @@ class MainActivity : Activity() {
             sb.append("\n✨ Succès débloqués :\n")
             report.newAchievements.forEach { sb.append("• $it\n") }
         }
-        AlertDialog.Builder(this)
+        dialog()
             .setTitle("🎉 Bravo !")
             .setMessage(sb.toString().trim())
             .setPositiveButton("Rejouer") { _, _ ->
@@ -135,14 +162,44 @@ class MainActivity : Activity() {
     private fun showLevelChooser() {
         val labels = arrayOf("Facile — 2×2", "Normal — 3×3", "Difficile — 4×4", "Extrême — 5×5")
         val sizes = intArrayOf(2, 3, 4, 5)
-        AlertDialog.Builder(this)
+        dialog()
             .setTitle("Niveau de difficulté")
             .setItems(labels) { _, which ->
-                dailyMode = false   // on quitte le contexte du défi du jour
+                dailyMode = false
                 glView.renderer.setSize(sizes[which])
             }
             .setNegativeButton("Annuler", null)
             .show()
+    }
+
+    private fun showChallenges() {
+        val sb = StringBuilder()
+        for ((id, label) in Stats.CHALLENGES) {
+            sb.append(if (Stats.challengeDone(this, id)) "✅ " else "⬜ ").append(label).append("\n")
+        }
+        dialog().setTitle("🎯 Défis").setMessage(sb.toString().trim())
+            .setPositiveButton("OK", null).show()
+    }
+
+    private fun showLeaderboard() {
+        val names = mapOf(2 to "Facile 2×2", 3 to "Normal 3×3", 4 to "Difficile 4×4", 5 to "Extrême 5×5")
+        val sb = StringBuilder()
+        for (n in 2..5) {
+            sb.append("${names[n]}\n   ⏱ ${Stats.formatTime(Stats.bestTime(this, n))}")
+            val m = Stats.bestMoves(this, n)
+            sb.append("   |   🔢 ${if (m < 0) "—" else m}\n\n")
+        }
+        dialog().setTitle("🏆 Classement").setMessage(sb.toString().trim())
+            .setPositiveButton("OK", null).show()
+    }
+
+    private fun showAchievements() {
+        val sb = StringBuilder()
+        for ((id, label) in Stats.ACHIEVEMENTS) {
+            sb.append(if (Stats.isUnlocked(this, id)) "✅ " else "🔒 ").append(label).append("\n")
+        }
+        dialog().setTitle("⭐ Succès").setMessage(sb.toString().trim())
+            .setPositiveButton("OK", null).show()
     }
 
     private fun showThemeChooser() {
@@ -154,17 +211,14 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.parseColor("#12121a"))
         }
         grid.adapter = ThemeAdapter()
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Choisir un thème")
-            .setView(grid)
-            .setNegativeButton("Fermer", null)
-            .create()
+        val d = dialog().setTitle("Choisir un thème").setView(grid)
+            .setNegativeButton("Fermer", null).create()
         grid.setOnItemClickListener { _, _, position, _ ->
             glView.renderer.setTheme(position)
             glView.renderer.requestReset()
-            dialog.dismiss()
+            d.dismiss()
         }
-        dialog.show()
+        d.show()
     }
 
     private inner class ThemeAdapter : BaseAdapter() {
