@@ -1,10 +1,11 @@
-# 🧊 Rubik's Cube 3D — natif Kotlin
+# 🌌 CubeNova — Rubik's Cube 3D natif Kotlin
 
 Un Rubik's Cube 3D **100% natif Android**, écrit en **Kotlin** avec **OpenGL ES 2.0**
 (pas de WebView, pas de moteur externe). L'APK est compilé **automatiquement** par
 GitHub Actions.
 
 ## ✨ Fonctionnalités
+- **Écran d'accueil CubeNova** : boutons cliquables (Jouer, Modes, Paramètres… ).
 - Rendu 3D natif OpenGL ES (27 pièces, faces colorées).
 - **Tourne une face en glissant directement dessus** (picking 3D par lancer de rayon).
 - **Joystick** dédié pour pivoter la vue (plus de rotation accidentelle de ligne).

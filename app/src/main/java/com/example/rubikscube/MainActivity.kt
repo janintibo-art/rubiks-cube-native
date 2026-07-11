@@ -25,6 +25,10 @@ class MainActivity : Activity() {
 
         glView = findViewById(R.id.glView)
 
+        // Taille de départ éventuellement choisie depuis le menu (Modes)
+        val startSize = intent.getIntExtra("startSize", 3)
+        if (startSize in 2..5) glView.renderer.setSize(startSize)
+
         // Joystick -> rotation de la vue (vitesse modérée)
         val joystick = findViewById<JoystickView>(R.id.joystick)
         joystick.onMove = { nx, ny ->
