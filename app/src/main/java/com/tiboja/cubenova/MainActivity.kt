@@ -176,7 +176,11 @@ class MainActivity : Activity() {
         val timeMs = win[0]; val moves = win[1].toInt(); val size = win[2].toInt()
         val isDaily = dailyMode && size == 3
         val report = Stats.recordWin(this, size, timeMs, moves, isDaily)
-        showVictory(size, timeMs, moves, report, isDaily)
+
+        // Animation de victoire, puis dialogue de score au tap
+        val victory = findViewById<VictoryView>(R.id.victoryView)
+        victory.onDone = { showVictory(size, timeMs, moves, report, isDaily) }
+        victory.start()
     }
 
     private fun showVictory(size: Int, timeMs: Long, moves: Int, report: Stats.WinReport, isDaily: Boolean) {

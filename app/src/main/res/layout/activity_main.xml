@@ -173,4 +173,11 @@
             android:paddingRight="0dp"
             android:contentDescription="Réinitialiser" />
     </LinearLayout>
+
+    <!-- Animation de victoire (au-dessus de tout, cachée par défaut) -->
+    <com.tiboja.cubenova.VictoryView
+        android:id="@+id/victoryView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 </FrameLayout>
