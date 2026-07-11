@@ -26,6 +26,7 @@ class MainActivity : Activity() {
     private lateinit var hud: View
     private lateinit var joystick: JoystickView
     private lateinit var miView: Button
+    private lateinit var btnUndo: Button
 
     private var dailyMode = false
     private var dailySeed = 0L
@@ -76,10 +77,13 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.miSettings).setOnClickListener { closeMenu(); showSettings() }
 
         // Actions
+        btnUndo = findViewById(R.id.btnUndo)
+        btnUndo.setOnClickListener { glView.renderer.undo() }
+
         findViewById<Button>(R.id.btnScramble).setOnClickListener {
             if (dailyMode) glView.renderer.requestChallenge(3, dailySeed) else glView.renderer.scramble()
         }
-        findViewById<Button>(R.id.btnReset).setOnClickListener { glView.renderer.requestReset() }
+        findViewById<Button>(R.id.btnReset).setOnClickListener { confirmReset() }
 
         // Lancement
         if (intent.getBooleanExtra("daily", false)) {
@@ -140,6 +144,13 @@ class MainActivity : Activity() {
     private fun updateHud() {
         txtTimer.text = Stats.formatTime(glView.renderer.elapsedMs())
         txtMoves.text = "${glView.renderer.moveCount()} coups"
+
+        // Bouton Annuler : actif seulement s'il y a un coup à défaire
+        val can = glView.renderer.canUndo()
+        if (btnUndo.isEnabled != can) {
+            btnUndo.isEnabled = can
+            btnUndo.alpha = if (can) 1f else 0.4f
+        }
 
         val win = glView.renderer.consumeWin() ?: return
         Sound.win()
@@ -218,6 +229,20 @@ class MainActivity : Activity() {
         }
         dialog().setTitle("⭐ Succès").setMessage(sb.toString().trim())
             .setPositiveButton("OK", null).show()
+    }
+
+    private fun confirmReset() {
+        // Partie en cours = chrono lancé et cube non résolu
+        if (!glView.renderer.isTiming()) {
+            glView.renderer.requestReset()
+            return
+        }
+        dialog()
+            .setTitle("Réinitialiser ?")
+            .setMessage("La partie en cours sera abandonnée (temps et coups perdus). Continuer ?")
+            .setPositiveButton("Réinitialiser") { _, _ -> glView.renderer.requestReset() }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     private fun showSettings() {

@@ -75,6 +75,8 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var scrambleRemaining = 0
     private var armed = false          // true = une victoire peut être enregistrée
     private var manualMoves = 0        // coups manuels depuis le dernier reset/scramble
+    private val history = ArrayDeque<Move>()   // coups du joueur (pour annuler)
+    @Volatile private var undoing = false      // le coup en cours est une annulation
     private val winLock = Any()
     private var pendingWin: LongArray? = null   // [timeMs, moves, size]
 
@@ -96,6 +98,16 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
     // --- API thread UI ---
     fun enqueueMove(axis: Int, layer: Float, dir: Int) = moveQueue.add(Move(axis, layer, dir))
+
+    /** Annule le dernier coup du joueur (rotation inverse). */
+    fun undo() {
+        if (animating || moveQueue.isNotEmpty() || scrambleRemaining > 0) return
+        val last = history.removeLastOrNull() ?: return
+        undoing = true
+        moveQueue.add(Move(last.axis, last.layer, -last.dir))
+    }
+
+    fun canUndo(): Boolean = history.isNotEmpty() && !animating && moveQueue.isEmpty() && scrambleRemaining == 0
     fun requestReset() { resetRequested = true }
     fun setTheme(index: Int) { pendingAtlas = Themes.ATLAS[index] }
     fun setSize(n: Int) { pendingSize = n; resetRequested = true }
@@ -113,6 +125,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val count = when (n) { 2 -> 12; 3 -> 20; 4 -> 30; else -> 40 }
         timing = false; moves = 0; finalMs = 0
         armed = false; manualMoves = 0
+        history.clear(); undoing = false
         scrambleRemaining = count
         repeat(count) {
             val axis = rng.nextInt(3)
@@ -219,6 +232,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             animAngle = 0f
             timing = false; moves = 0; finalMs = 0; scrambleRemaining = 0
             armed = false; manualMoves = 0
+            history.clear(); undoing = false
             synchronized(winLock) { pendingWin = null }
             cubies = buildCubies()
         }
@@ -344,8 +358,16 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         } else {
             // coup manuel : démarre le chrono au 1er coup
             if (!timing) { timing = true; startMs = SystemClock.elapsedRealtime() }
-            moves++
-            manualMoves++
+            if (undoing) {
+                // annulation : on décompte le coup au lieu de l'ajouter
+                undoing = false
+                if (moves > 0) moves--
+                if (manualMoves > 0) manualMoves--
+            } else {
+                history.addLast(Move(animAxisIndex, animLayer, animDir))
+                moves++
+                manualMoves++
+            }
             onUserMove?.invoke()
             if (!armed && manualMoves >= 10) armed = true   // évite les faux records
             if (armed && isSolved()) {
