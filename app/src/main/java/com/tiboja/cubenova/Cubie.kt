@@ -48,7 +48,7 @@ class Cubie(
     init {
         Matrix.setIdentityM(orientation, 0)
         val data = buildGeometry()
-        vertexCount = data.size / 6
+        vertexCount = data.size / 11
         vertexBuffer = ByteBuffer.allocateDirect(data.size * 4)
             .order(ByteOrder.nativeOrder()).asFloatBuffer().put(data)
         vertexBuffer.position(0)
@@ -58,7 +58,7 @@ class Cubie(
 
     private fun buildGeometry(): FloatArray {
         val half = (n - 1) / 2f           // valeur centrée max
-        val hs = 0.46f * cell             // demi-taille du cubie en monde
+        val hs = 0.495f * cell            // presque jointifs : le liseré du shader fait la séparation
         val out = ArrayList<Float>()
 
         for (f in FACES) {
@@ -84,17 +84,22 @@ class Cubie(
                 vBot = f.cellRow / 2f + ((srow + 1f) / n) / 2f
             }
 
-            fun push(p: FloatArray, u: Float, v: Float) {
-                out.add(p[0]); out.add(p[1]); out.add(p[2]); out.add(u); out.add(v); out.add(tex)
+            fun push(p: FloatArray, u: Float, v: Float, lu: Float, lv: Float) {
+                out.add(p[0]); out.add(p[1]); out.add(p[2])          // position
+                out.add(u); out.add(v)                              // UV atlas
+                out.add(tex)                                        // 1 = face extérieure
+                out.add(f.nx.toFloat()); out.add(f.ny.toFloat()); out.add(f.nz.toFloat())  // normale
+                out.add(lu); out.add(lv)                            // UV locale (0..1 dans le sticker)
             }
-            push(TL, uL, vTop); push(TR, uR, vTop); push(BR, uR, vBot)
-            push(TL, uL, vTop); push(BR, uR, vBot); push(BL, uL, vBot)
+            // 2 triangles : TL,TR,BR + TL,BR,BL
+            push(TL, uL, vTop, 0f, 0f); push(TR, uR, vTop, 1f, 0f); push(BR, uR, vBot, 1f, 1f)
+            push(TL, uL, vTop, 0f, 0f); push(BR, uR, vBot, 1f, 1f); push(BL, uL, vBot, 0f, 1f)
         }
         return out.toFloatArray()
     }
 
-    fun draw(posH: Int, uvH: Int, texH: Int) {
-        val stride = 6 * 4
+    fun draw(posH: Int, uvH: Int, texH: Int, normH: Int, luvH: Int) {
+        val stride = 11 * 4
         vertexBuffer.position(0)
         GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, stride, vertexBuffer)
         GLES20.glEnableVertexAttribArray(posH)
@@ -104,9 +109,19 @@ class Cubie(
         vertexBuffer.position(5)
         GLES20.glVertexAttribPointer(texH, 1, GLES20.GL_FLOAT, false, stride, vertexBuffer)
         GLES20.glEnableVertexAttribArray(texH)
+        vertexBuffer.position(6)
+        GLES20.glVertexAttribPointer(normH, 3, GLES20.GL_FLOAT, false, stride, vertexBuffer)
+        GLES20.glEnableVertexAttribArray(normH)
+        vertexBuffer.position(9)
+        GLES20.glVertexAttribPointer(luvH, 2, GLES20.GL_FLOAT, false, stride, vertexBuffer)
+        GLES20.glEnableVertexAttribArray(luvH)
+
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
+
         GLES20.glDisableVertexAttribArray(posH)
         GLES20.glDisableVertexAttribArray(uvH)
         GLES20.glDisableVertexAttribArray(texH)
+        GLES20.glDisableVertexAttribArray(normH)
+        GLES20.glDisableVertexAttribArray(luvH)
     }
 }

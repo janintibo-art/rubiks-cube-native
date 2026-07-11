@@ -38,6 +38,9 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     private var uvHandle = 0
     private var texFlagHandle = 0
     private var mvpHandle = 0
+    private var normalHandle = 0
+    private var localUvHandle = 0
+    private var modelHandle = 0
     private var samplerHandle = 0
 
     private var textureId = 0
@@ -172,7 +175,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0.05f, 0.05f, 0.07f, 1f)
+        GLES20.glClearColor(0.043f, 0.043f, 0.075f, 1f)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
 
         val vs = loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SRC)
@@ -185,7 +188,10 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         posHandle = GLES20.glGetAttribLocation(program, "aPos")
         uvHandle = GLES20.glGetAttribLocation(program, "aUV")
         texFlagHandle = GLES20.glGetAttribLocation(program, "aTex")
+        normalHandle = GLES20.glGetAttribLocation(program, "aNormal")
+        localUvHandle = GLES20.glGetAttribLocation(program, "aLocalUV")
         mvpHandle = GLES20.glGetUniformLocation(program, "uMVP")
+        modelHandle = GLES20.glGetUniformLocation(program, "uModel")
         samplerHandle = GLES20.glGetUniformLocation(program, "uTexture")
 
         val ids = IntArray(1)
@@ -303,9 +309,14 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             if (inLayer) Matrix.multiplyMM(world, 0, animRot, 0, model, 0)
             else System.arraycopy(model, 0, world, 0, 16)
 
+            // Normales : orientation de la pièce APRÈS rotation globale (lumière fixe par rapport à la caméra)
+            val nmat = FloatArray(16)
+            Matrix.multiplyMM(nmat, 0, global, 0, world, 0)
+            GLES20.glUniformMatrix4fv(modelHandle, 1, false, nmat, 0)
+
             Matrix.multiplyMM(mvp, 0, vpGlobal, 0, world, 0)
             GLES20.glUniformMatrix4fv(mvpHandle, 1, false, mvp, 0)
-            c.draw(posHandle, uvHandle, texFlagHandle)
+            c.draw(posHandle, uvHandle, texFlagHandle, normalHandle, localUvHandle)
         }
     }
 
@@ -408,21 +419,66 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     companion object {
         private const val VERTEX_SRC = """
             uniform mat4 uMVP;
+            uniform mat4 uModel;     // rotation monde de la pièce (pour la normale)
             attribute vec4 aPos;
             attribute vec2 aUV;
             attribute float aTex;
+            attribute vec3 aNormal;
+            attribute vec2 aLocalUV;
             varying vec2 vUV;
             varying float vTex;
-            void main() { vUV = aUV; vTex = aTex; gl_Position = uMVP * aPos; }
+            varying vec3 vNormal;
+            varying vec2 vLocalUV;
+            void main() {
+                vUV = aUV;
+                vTex = aTex;
+                vLocalUV = aLocalUV;
+                vNormal = normalize((uModel * vec4(aNormal, 0.0)).xyz);
+                gl_Position = uMVP * aPos;
+            }
         """
         private const val FRAGMENT_SRC = """
             precision mediump float;
             uniform sampler2D uTexture;
             varying vec2 vUV;
             varying float vTex;
+            varying vec3 vNormal;
+            varying vec2 vLocalUV;
+
             void main() {
-                if (vTex > 0.5) gl_FragColor = texture2D(uTexture, vUV);
-                else gl_FragColor = vec4(0.02, 0.02, 0.03, 1.0);
+                if (vTex < 0.5) {
+                    // Face interne : plastique sombre
+                    gl_FragColor = vec4(0.03, 0.03, 0.045, 1.0);
+                    return;
+                }
+
+                vec3 base = texture2D(uTexture, vUV).rgb;
+
+                // --- Liseré sombre autour du sticker (comme un vrai Rubik's) ---
+                vec2 d = min(vLocalUV, 1.0 - vLocalUV);   // distance au bord (0 au bord)
+                float edge = min(d.x, d.y);
+                float border = smoothstep(0.0, 0.055, edge);          // 0 au bord -> 1 au centre
+                float inner  = smoothstep(0.055, 0.085, edge);        // petit chanfrein clair
+
+                // --- Éclairage ---
+                vec3 N = normalize(vNormal);
+                vec3 L = normalize(vec3(0.45, 0.75, 0.55));   // lumière principale
+                vec3 V = vec3(0.0, 0.0, 1.0);                 // vue (caméra +Z)
+                float diff = max(dot(N, L), 0.0);
+                float ambient = 0.62;
+                float lambert = ambient + 0.42 * diff;
+
+                // Spéculaire (brillance plastique)
+                vec3 H = normalize(L + V);
+                float spec = pow(max(dot(N, H), 0.0), 26.0) * 0.30;
+
+                // Chanfrein : les bords du sticker captent un peu plus la lumière
+                float bevel = mix(1.18, 1.0, inner);
+
+                vec3 color = base * lambert * bevel + vec3(spec);
+                color *= mix(0.10, 1.0, border);   // assombrit fortement le contour
+
+                gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
             }
         """
     }
