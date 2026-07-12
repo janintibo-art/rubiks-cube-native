@@ -28,6 +28,7 @@ class MainActivity : Activity() {
     private lateinit var joystick: JoystickView
     private lateinit var miView: Button
     private lateinit var btnUndo: Button
+    private lateinit var btnHint: Button
 
     private var dailyMode = false
     private var dailySeed = 0L
@@ -86,7 +87,12 @@ class MainActivity : Activity() {
 
         // Actions
         btnUndo = findViewById(R.id.btnUndo)
-        btnUndo.setOnClickListener { glView.renderer.undo() }
+        btnUndo.setOnClickListener {
+            if (!glView.renderer.undo() && glView.renderer.freeUndos <= 0) {
+                Toast.makeText(this,
+                    "Annulations gratuites épuisées — utilise l'indice 💡", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         val btnScramble = findViewById<Button>(R.id.btnScramble)
         btnScramble.setOnClickListener {
@@ -101,12 +107,12 @@ class MainActivity : Activity() {
                 Toast.makeText(this, label, Toast.LENGTH_SHORT).show(); true
             }
         }
-        tip(btnUndo, "Annuler le dernier coup")
+        tip(btnUndo, "Annuler (${CubeRenderer.FREE_UNDOS_PER_GAME} gratuits par partie)")
         tip(btnScramble, "Mélanger")
         tip(btnReset, "Réinitialiser")
 
         // Indice : annule 3 coups contre des gemmes
-        val btnHint = findViewById<Button>(R.id.btnHint)
+        btnHint = findViewById(R.id.btnHint)
         btnHint.setOnClickListener { useHint() }
         tip(btnHint, "Indice : annule ${Stats.HINT_MOVES} coups (${Stats.HINT_PRICE} 💎)")
 
@@ -156,6 +162,9 @@ class MainActivity : Activity() {
                     "Mode Vue :\n" +
                     "  – Libre : rotation fluide.\n" +
                     "  – Directionnel : le cube reste de face et bascule face par face.\n\n" +
+                    "↩ Annuler : ${CubeRenderer.FREE_UNDOS_PER_GAME} annulations gratuites par partie.\n" +
+                    "💡 Indice : annule ${Stats.HINT_MOVES} coups pour ${Stats.HINT_PRICE} 💎 (illimité).\n" +
+                    "👁 Maintiens pour voir les 6 faces à reconstituer.\n\n" +
                     "Mélange, puis remets l'image en ordre !"
                 )
                 .setPositiveButton("C'est parti !", null)
@@ -206,11 +215,21 @@ class MainActivity : Activity() {
             }
         }
 
-        // Bouton Annuler : actif seulement s'il y a un coup à défaire
+        // Bouton Annuler : actif seulement s'il reste des annulations gratuites
         val can = glView.renderer.canUndo()
+        val left = glView.renderer.freeUndos
+        val undoLabel = if (left > 0) "↩ $left" else "↩ 0"
+        if (btnUndo.text != undoLabel) btnUndo.text = undoLabel
         if (btnUndo.isEnabled != can) {
             btnUndo.isEnabled = can
             btnUndo.alpha = if (can) 1f else 0.4f
+        }
+
+        // Bouton Indice : actif s'il y a un historique à défaire
+        val canHint = glView.renderer.hasHistory()
+        if (btnHint.isEnabled != canHint) {
+            btnHint.isEnabled = canHint
+            btnHint.alpha = if (canHint) 1f else 0.4f
         }
 
         val win = glView.renderer.consumeWin() ?: return
@@ -315,7 +334,7 @@ class MainActivity : Activity() {
     }
 
     private fun useHint() {
-        if (!glView.renderer.canUndo()) {
+        if (!glView.renderer.hasHistory()) {
             Toast.makeText(this, "Aucun coup à annuler", Toast.LENGTH_SHORT).show()
             return
         }

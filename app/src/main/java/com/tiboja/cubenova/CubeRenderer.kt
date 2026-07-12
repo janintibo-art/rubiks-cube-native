@@ -121,17 +121,29 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     // --- API thread UI ---
     fun enqueueMove(axis: Int, layer: Float, dir: Int) = moveQueue.add(Move(axis, layer, dir))
 
-    /** Annule le dernier coup du joueur (rotation inverse). */
-    fun undo() {
-        if (animating || moveQueue.isNotEmpty() || scrambleRemaining > 0) return
-        val last = history.removeLastOrNull() ?: return
+    /** Annulations gratuites restantes pour la partie en cours. */
+    @Volatile var freeUndos = FREE_UNDOS_PER_GAME
+        private set
+
+    /** Annule le dernier coup du joueur (rotation inverse). Consomme une annulation gratuite. */
+    fun undo(): Boolean {
+        if (animating || moveQueue.isNotEmpty() || scrambleRemaining > 0) return false
+        if (freeUndos <= 0) return false
+        val last = history.removeLastOrNull() ?: return false
+        freeUndos--
         undoQueue++
         moveQueue.add(Move(last.axis, last.layer, -last.dir))
+        return true
     }
 
-    fun canUndo(): Boolean = history.isNotEmpty() && !animating && moveQueue.isEmpty() && scrambleRemaining == 0
+    fun canUndo(): Boolean =
+        freeUndos > 0 && history.isNotEmpty() && !animating && moveQueue.isEmpty() && scrambleRemaining == 0
 
-    /** Indice : annule les N derniers coups d'un coup. Renvoie le nombre réellement annulé. */
+    /** Y a-t-il des coups à défaire (indépendamment des annulations gratuites) ? */
+    fun hasHistory(): Boolean =
+        history.isNotEmpty() && !animating && moveQueue.isEmpty() && scrambleRemaining == 0
+
+    /** Indice (payant) : annule les N derniers coups sans toucher aux annulations gratuites. */
     fun undoMany(n: Int): Int {
         if (animating || moveQueue.isNotEmpty() || scrambleRemaining > 0) return 0
         var count = 0
@@ -168,6 +180,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         armed = false; manualMoves = 0
         history.clear(); undoQueue = 0
         maxFacesReached = 0
+        freeUndos = FREE_UNDOS_PER_GAME
         scrambleRemaining = count
         repeat(count) {
             val axis = rng.nextInt(3)
@@ -315,6 +328,7 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
             armed = false; manualMoves = 0
             history.clear(); undoQueue = 0
             maxFacesReached = 0
+            freeUndos = FREE_UNDOS_PER_GAME
             synchronized(winLock) { pendingWin = null }
             cubies = buildCubies()
         }
@@ -537,6 +551,9 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     companion object {
+        /** Annulations gratuites offertes à chaque partie. */
+        const val FREE_UNDOS_PER_GAME = 3
+
         // --- Fond : halo néon radial ---
         private const val BG_VERTEX_SRC = """
             attribute vec2 aPos;
