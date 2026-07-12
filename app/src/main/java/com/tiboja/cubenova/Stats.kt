@@ -108,6 +108,34 @@ object Stats {
     fun musicTrack(ctx: Context) = p(ctx).getInt("music_track", 0)
     fun setMusicTrack(ctx: Context, v: Int) = p(ctx).edit().putInt("music_track", v).apply()
 
+    // ---------- Statistiques globales ----------
+    fun totalSolved(ctx: Context): Int = p(ctx).getInt("stat_solved", 0)
+    fun totalSolvedBySize(ctx: Context, size: Int): Int = p(ctx).getInt("stat_solved_$size", 0)
+    fun totalTimeMs(ctx: Context): Long = p(ctx).getLong("stat_time", 0L)
+    fun totalMoves(ctx: Context): Long = p(ctx).getLong("stat_moves", 0L)
+    fun hintsUsed(ctx: Context): Int = p(ctx).getInt("stat_hints", 0)
+    fun avgTimeMs(ctx: Context, size: Int): Long {
+        val n = totalSolvedBySize(ctx, size)
+        if (n == 0) return -1L
+        return p(ctx).getLong("stat_time_$size", 0L) / n
+    }
+
+    // ---------- Indice (coûte des gemmes) ----------
+    const val HINT_PRICE = 20L
+    const val HINT_MOVES = 3          // nombre de coups annulés par indice
+
+    /** Débite le prix d'un indice. Renvoie false si pas assez de gemmes. */
+    fun payHint(ctx: Context): Boolean {
+        val pr = p(ctx)
+        val g = pr.getLong("gems", 0L)
+        if (g < HINT_PRICE) return false
+        pr.edit()
+            .putLong("gems", g - HINT_PRICE)
+            .putInt("stat_hints", pr.getInt("stat_hints", 0) + 1)
+            .apply()
+        return true
+    }
+
     // ---------- Réglages graphiques (0..100, 50 = réglage d'usine) ----------
     val GFX_KEYS = arrayOf("gfx_bright", "gfx_gloss", "gfx_reflect", "gfx_bevel", "gfx_halo")
     fun gfx(ctx: Context, key: String) = p(ctx).getInt(key, 50)
@@ -223,6 +251,13 @@ object Stats {
         val gemGain = size * 2 + (if (isDaily) 5 else 0) + bonus
         e.putLong("xp", pr.getLong("xp", 0L) + xpGain)
         e.putLong("gems", pr.getLong("gems", 0L) + gemGain)
+
+        // Statistiques globales
+        e.putInt("stat_solved", pr.getInt("stat_solved", 0) + 1)
+        e.putInt("stat_solved_$size", pr.getInt("stat_solved_$size", 0) + 1)
+        e.putLong("stat_time", pr.getLong("stat_time", 0L) + timeMs)
+        e.putLong("stat_time_$size", pr.getLong("stat_time_$size", 0L) + timeMs)
+        e.putLong("stat_moves", pr.getLong("stat_moves", 0L) + moves)
 
         // Records par taille
         val prevT = pr.getLong("time_$size", -1L)

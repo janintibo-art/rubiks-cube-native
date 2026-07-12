@@ -62,6 +62,7 @@
         <Button android:id="@+id/miDaily" style="@style/MenuItemButton" android:text="🗓  Défi du jour" />
         <Button android:id="@+id/miLeaderboard" style="@style/MenuItemButton" android:text="🏆  Classement" />
         <Button android:id="@+id/miAchievements" style="@style/MenuItemButton" android:text="⭐  Succès" />
+        <Button android:id="@+id/miStats" style="@style/MenuItemButton" android:text="📊  Statistiques" />
         <Button android:id="@+id/miSettings" style="@style/MenuItemButton" android:text="⚙  Paramètres" />
         <Button android:id="@+id/miGraphics" style="@style/MenuItemButton" android:text="🎛  Graphismes" />
     </LinearLayout>
@@ -173,6 +174,23 @@
             android:paddingRight="0dp"
             android:contentDescription="Réinitialiser" />
     </LinearLayout>
+
+    <!-- Indice (coûte des gemmes) -->
+    <Button
+        android:id="@+id/btnHint"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="238dp"
+        android:background="@drawable/btn_round"
+        android:textColor="#EAEAFF"
+        android:text="💡"
+        android:textSize="19sp"
+        android:textAllCaps="false"
+        android:paddingLeft="0dp"
+        android:paddingRight="0dp"
+        android:contentDescription="Indice" />
 
     <!-- Aperçu du cube résolu (bouton œil, au-dessus des actions) -->
     <Button

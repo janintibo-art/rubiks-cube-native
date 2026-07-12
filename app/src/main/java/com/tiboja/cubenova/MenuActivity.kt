@@ -249,15 +249,20 @@ class MenuActivity : Activity() {
     }
 
     private fun showLeaderboard() {
-        val sb = StringBuilder()
         val names = mapOf(2 to "Facile 2×2", 3 to "Normal 3×3", 4 to "Difficile 4×4", 5 to "Extrême 5×5")
+        val sb = StringBuilder()
+        sb.append("🏆 Records\n")
         for (n in 2..5) {
-            val t = Stats.bestTime(this, n)
+            sb.append("${names[n]}\n   ⏱ ${Stats.formatTime(Stats.bestTime(this, n))}")
             val m = Stats.bestMoves(this, n)
-            sb.append("${names[n]}\n")
-            sb.append("   Meilleur temps : ${Stats.formatTime(t)}")
-            sb.append("   |   Coups : ${if (m < 0) "—" else m}\n\n")
+            sb.append("   |   🔢 ${if (m < 0) "—" else m}\n")
         }
+        sb.append("\n📊 Statistiques\n")
+        sb.append("🧩 Cubes résolus : ${Stats.totalSolved(this)}\n")
+        sb.append("🔢 Coups joués : ${Stats.totalMoves(this)}\n")
+        sb.append("💡 Indices utilisés : ${Stats.hintsUsed(this)}\n")
+        sb.append("🔥 Meilleure série : ${Stats.bestStreak(this)} jour(s)")
+
         AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("🏆 Classement")
             .setMessage(sb.toString().trim())

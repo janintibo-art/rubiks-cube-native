@@ -75,6 +75,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.miDaily).setOnClickListener { closeMenu(); startDaily() }
         findViewById<Button>(R.id.miLeaderboard).setOnClickListener { closeMenu(); showLeaderboard() }
         findViewById<Button>(R.id.miAchievements).setOnClickListener { closeMenu(); showAchievements() }
+        findViewById<Button>(R.id.miStats).setOnClickListener { closeMenu(); showStats() }
         findViewById<Button>(R.id.miSettings).setOnClickListener { closeMenu(); showSettings() }
         findViewById<Button>(R.id.miGraphics).setOnClickListener {
             closeMenu(); GraphicsDialog.show(this, glView.renderer)
@@ -103,6 +104,11 @@ class MainActivity : Activity() {
         tip(btnUndo, "Annuler le dernier coup")
         tip(btnScramble, "Mélanger")
         tip(btnReset, "Réinitialiser")
+
+        // Indice : annule 3 coups contre des gemmes
+        val btnHint = findViewById<Button>(R.id.btnHint)
+        btnHint.setOnClickListener { useHint() }
+        tip(btnHint, "Indice : annule ${Stats.HINT_MOVES} coups (${Stats.HINT_PRICE} 💎)")
 
         // Aperçu du cube résolu : maintenir 👁 affiche les 6 faces cibles
         val peekPanel = findViewById<View>(R.id.peekPanel)
@@ -306,6 +312,65 @@ class MainActivity : Activity() {
             .setPositiveButton("Réinitialiser") { _, _ -> glView.renderer.requestReset() }
             .setNegativeButton("Annuler", null)
             .show()
+    }
+
+    private fun useHint() {
+        if (!glView.renderer.canUndo()) {
+            Toast.makeText(this, "Aucun coup à annuler", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val gems = Stats.gems(this)
+        if (gems < Stats.HINT_PRICE) {
+            dialog()
+                .setTitle("💎 Gemmes insuffisantes")
+                .setMessage("Un indice coûte ${Stats.HINT_PRICE} 💎 et tu en as $gems.\n\n" +
+                        "Gagne des gemmes en résolvant des cubes et le Défi du jour !")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+        dialog()
+            .setTitle("💡 Utiliser un indice ?")
+            .setMessage("Les ${Stats.HINT_MOVES} derniers coups seront annulés.\n\n" +
+                    "Coût : ${Stats.HINT_PRICE} 💎   (tu as $gems 💎)")
+            .setPositiveButton("Utiliser") { _, _ ->
+                if (Stats.payHint(this)) {
+                    val n = glView.renderer.undoMany(Stats.HINT_MOVES)
+                    Toast.makeText(this, "💡 $n coup(s) annulé(s)", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+    }
+
+    private fun showStats() {
+        val sb = StringBuilder()
+        val total = Stats.totalSolved(this)
+        sb.append("🧩 Cubes résolus : $total\n")
+        sb.append("🔢 Coups joués : ${Stats.totalMoves(this)}\n")
+        sb.append("⏱ Temps de jeu : ${formatDuration(Stats.totalTimeMs(this))}\n")
+        sb.append("💡 Indices utilisés : ${Stats.hintsUsed(this)}\n")
+        sb.append("🔥 Meilleure série : ${Stats.bestStreak(this)} jour(s)\n\n")
+
+        val names = mapOf(2 to "Facile 2×2", 3 to "Normal 3×3", 4 to "Difficile 4×4", 5 to "Extrême 5×5")
+        sb.append("Par niveau :\n")
+        for (n in 2..5) {
+            val c = Stats.totalSolvedBySize(this, n)
+            val avg = Stats.avgTimeMs(this, n)
+            sb.append("• ${names[n]} : $c résolu(s)")
+            if (avg > 0) sb.append("  |  moy. ${Stats.formatTime(avg)}")
+            sb.append("\n")
+        }
+        dialog().setTitle("📊 Statistiques").setMessage(sb.toString().trim())
+            .setPositiveButton("OK", null).show()
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) "${h}h ${m}min" else if (m > 0) "${m}min ${s}s" else "${s}s"
     }
 
     private fun showSettings() {
