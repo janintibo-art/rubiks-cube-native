@@ -227,6 +227,10 @@ class MainActivity : Activity() {
         if (report.newRecordTime || report.dailyRecord) sb.append("  🏆 Record !")
         sb.append("\n🔢 Coups : $moves")
         sb.append("\n\n⚡ +${report.xpGained} XP   💎 +${report.gemsGained}")
+        if (report.streak > 0) {
+            sb.append("\n\n🔥 Série : ${report.streak} jour${if (report.streak > 1) "s" else ""}")
+            if (report.streakBonus > 0) sb.append("   (+${report.streakBonus} 💎 bonus)")
+        }
         if (report.leveledUp) sb.append("\n🎖 Niveau ${Stats.level(this)} atteint !")
         if (report.newChallenges.isNotEmpty()) {
             sb.append("\n\n🎯 Défis réussis :\n")

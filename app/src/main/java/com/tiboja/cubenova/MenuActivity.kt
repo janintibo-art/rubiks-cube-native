@@ -121,7 +121,11 @@ class MenuActivity : Activity() {
         if (!::txtLevel.isInitialized) return
         txtLevel.text = "⭐ Niv. ${Stats.level(this)}"
         xpBar.progress = Stats.xpInLevel(this).toInt()
-        txtXp.text = "${Stats.xpInLevel(this)} / ${Stats.XP_PER_LEVEL} XP"
+        val s = Stats.streak(this)
+        txtXp.text = if (s > 0 && Stats.streakAlive(this))
+            "${Stats.xpInLevel(this)} / ${Stats.XP_PER_LEVEL} XP   🔥 $s j"
+        else
+            "${Stats.xpInLevel(this)} / ${Stats.XP_PER_LEVEL} XP"
         txtGems.text = "💎 ${Stats.gems(this)}"
     }
 
@@ -205,8 +209,25 @@ class MenuActivity : Activity() {
         val done = Stats.dailyDone(this)
         val best = Stats.dailyBestTime(this)
         val moves = Stats.dailyBestMoves(this)
+        val streak = Stats.streak(this)
+        val alive = Stats.streakAlive(this)
         val sb = StringBuilder()
         sb.append("Un mélange 3×3 identique pour tous, chaque jour.\n\n")
+
+        if (streak > 0 && alive) {
+            sb.append("🔥 Série en cours : $streak jour${if (streak > 1) "s" else ""}\n")
+            if (!done) {
+                sb.append("Relève le défi aujourd'hui pour la prolonger !\n")
+                sb.append("Bonus si tu réussis : +${Stats.streakBonus(streak + 1)} 💎\n")
+            }
+        } else if (streak > 0) {
+            sb.append("💔 Série interrompue (record : ${Stats.bestStreak(this)} jours)\n")
+            sb.append("Réussis le défi du jour pour repartir !\n")
+        } else {
+            sb.append("Réussis le défi chaque jour pour bâtir une série 🔥\n")
+        }
+        sb.append("\n")
+
         if (done) {
             sb.append("✅ Réussi aujourd'hui !\n")
             sb.append("⏱ Ton meilleur temps : ${Stats.formatTime(best)}\n")
@@ -214,9 +235,10 @@ class MenuActivity : Activity() {
         } else {
             sb.append("Pas encore résolu aujourd'hui.")
         }
+
         AlertDialog.Builder(this, R.style.NeonDialog)
             .setTitle("🗓 Défi du jour")
-            .setMessage(sb.toString())
+            .setMessage(sb.toString().trim())
             .setPositiveButton(if (done) "Rejouer" else "Jouer") { _, _ ->
                 val i = Intent(this, MainActivity::class.java)
                 i.putExtra("daily", true)

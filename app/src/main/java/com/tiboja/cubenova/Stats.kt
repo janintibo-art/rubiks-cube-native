@@ -142,6 +142,47 @@ object Stats {
     fun dailyBestTime(ctx: Context): Long = p(ctx).getLong("daily_time_${todayKey()}", -1L)
     fun dailyBestMoves(ctx: Context): Int = p(ctx).getInt("daily_moves_${todayKey()}", -1)
 
+    // ---------- Série (streak) du Défi du jour ----------
+    fun streak(ctx: Context): Int = p(ctx).getInt("streak", 0)
+    fun bestStreak(ctx: Context): Int = p(ctx).getInt("streak_best", 0)
+
+    /** Nombre de jours entre deux clés AAAAMMJJ (approx. via Calendar). */
+    private fun daysBetween(from: Long, to: Long): Int {
+        fun toCal(k: Long): Calendar {
+            val c = Calendar.getInstance()
+            c.set((k / 10000L).toInt(), ((k / 100L) % 100L).toInt() - 1, (k % 100L).toInt(), 12, 0, 0)
+            c.set(Calendar.MILLISECOND, 0)
+            return c
+        }
+        val a = toCal(from).timeInMillis
+        val b = toCal(to).timeInMillis
+        return Math.round((b - a) / 86_400_000.0).toInt()
+    }
+
+    /** La série est-elle encore vivante aujourd'hui ? (rompue si > 1 jour d'écart) */
+    fun streakAlive(ctx: Context): Boolean {
+        val last = p(ctx).getLong("streak_last", 0L)
+        if (last == 0L) return false
+        return daysBetween(last, todayKey()) <= 1
+    }
+
+    /** Bonus de gemmes selon la série (jour 1 → +5, plafonné à +25). */
+    fun streakBonus(streak: Int): Int = (5 + (streak - 1) * 3).coerceIn(5, 25)
+
+    /** Met à jour la série après une victoire au défi du jour. Renvoie la nouvelle série. */
+    private fun bumpStreak(ctx: Context, e: android.content.SharedPreferences.Editor): Int {
+        val pr = p(ctx)
+        val last = pr.getLong("streak_last", 0L)
+        val today = todayKey()
+        if (last == today) return pr.getInt("streak", 1)   // déjà compté aujourd'hui
+        val gap = if (last == 0L) 99 else daysBetween(last, today)
+        val newStreak = if (gap == 1) pr.getInt("streak", 0) + 1 else 1
+        e.putInt("streak", newStreak)
+        e.putLong("streak_last", today)
+        if (newStreak > pr.getInt("streak_best", 0)) e.putInt("streak_best", newStreak)
+        return newStreak
+    }
+
     /**
      * Enregistre une victoire. Renvoie les succès et défis nouvellement débloqués
      * et si c'est un nouveau record de temps.
@@ -153,7 +194,9 @@ object Stats {
         val dailyRecord: Boolean,
         val xpGained: Int,
         val gemsGained: Int,
-        val leveledUp: Boolean
+        val leveledUp: Boolean,
+        val streak: Int = 0,           // série après cette victoire (0 = pas un défi du jour)
+        val streakBonus: Int = 0       // gemmes bonus liées à la série
     )
 
     fun recordWin(ctx: Context, size: Int, timeMs: Long, moves: Int, isDaily: Boolean): WinReport {
@@ -162,10 +205,22 @@ object Stats {
 
         val levelBefore = level(ctx)
 
+        // Série (défi du jour) : bonus de gemmes croissant, une fois par jour
+        var newStreak = 0
+        var bonus = 0
+        if (isDaily) {
+            if (!dailyDone(ctx)) {
+                newStreak = bumpStreak(ctx, e)
+                bonus = streakBonus(newStreak)
+            } else {
+                newStreak = streak(ctx)   // déjà réussi aujourd'hui : pas de nouveau bonus
+            }
+        }
+
         // Récompenses XP / gemmes
         val baseXp = when (size) { 2 -> 30; 3 -> 60; 4 -> 120; else -> 200 }
         val xpGain = baseXp + if (isDaily) 50 else 0
-        val gemGain = size * 2 + if (isDaily) 5 else 0
+        val gemGain = size * 2 + (if (isDaily) 5 else 0) + bonus
         e.putLong("xp", pr.getLong("xp", 0L) + xpGain)
         e.putLong("gems", pr.getLong("gems", 0L) + gemGain)
 
@@ -227,7 +282,8 @@ object Stats {
             }
         }
         val leveledUp = level(ctx) > levelBefore
-        return WinReport(recordTime, newAch, newChal, dailyRecord, xpGain, gemGain, leveledUp)
+        return WinReport(recordTime, newAch, newChal, dailyRecord, xpGain, gemGain, leveledUp,
+            newStreak, bonus)
     }
 
     fun formatTime(ms: Long): String {
