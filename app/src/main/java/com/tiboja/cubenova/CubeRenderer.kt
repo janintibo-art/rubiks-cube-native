@@ -268,8 +268,8 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val ratio = width.toFloat() / height.toFloat()
         aspect = ratio
         Matrix.perspectiveM(projection, 0, 45f, ratio, 1f, 100f)
-        // Caméra un peu reculée et cube légèrement remonté : dégage les commandes du bas
-        Matrix.setLookAtM(view, 0, 0f, -0.35f, 10.5f, 0f, -0.35f, 0f, 0f, 1f, 0f)
+        // Cube remonté et caméra reculée : dégage la zone des commandes en bas
+        Matrix.setLookAtM(view, 0, 0f, -0.75f, 11.5f, 0f, -0.75f, 0f, 0f, 1f, 0f)
     }
 
     private fun loadAtlas(asset: String) {

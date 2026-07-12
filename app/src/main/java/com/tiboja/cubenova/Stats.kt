@@ -121,7 +121,7 @@ object Stats {
     }
 
     // ---------- Indice (coûte des gemmes) ----------
-    const val HINT_PRICE = 20L
+    const val HINT_PRICE = 3L
     const val HINT_MOVES = 3          // nombre de coups annulés par indice
 
     /** Débite le prix d'un indice. Renvoie false si pas assez de gemmes. */

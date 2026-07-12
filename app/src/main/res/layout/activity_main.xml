@@ -117,30 +117,67 @@
         android:layout_marginStart="20dp"
         android:layout_marginBottom="26dp" />
 
-    <!-- Actions : disposition pyramidale compacte (coin bas droit) -->
+    <!-- Actions : grille compacte 2x2 + 1, alignée en bas à droite -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:paddingEnd="20dp"
-        android:paddingBottom="52dp">
+        android:gravity="end"
+        android:paddingEnd="18dp"
+        android:paddingBottom="30dp">
 
+        <!-- Ligne 1 : Indice, Aperçu -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnHint"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/btn_round"
+                android:textColor="#EAEAFF"
+                android:text="💡"
+                android:textSize="17sp"
+                android:textAllCaps="false"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:contentDescription="Indice" />
+
+            <Button
+                android:id="@+id/btnPeek"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:background="@drawable/btn_round"
+                android:textColor="#EAEAFF"
+                android:text="👁"
+                android:textSize="17sp"
+                android:textAllCaps="false"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:contentDescription="Aperçu du cube résolu" />
+        </LinearLayout>
+
+        <!-- Ligne 2 : Annuler, Mélanger -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
 
             <Button
                 android:id="@+id/btnUndo"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_marginEnd="10dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/btn_round"
                 android:textColor="#EAEAFF"
                 android:text="↩"
-                android:textSize="19sp"
+                android:textSize="17sp"
                 android:textAllCaps="false"
                 android:paddingLeft="0dp"
                 android:paddingRight="0dp"
@@ -148,66 +185,32 @@
 
             <Button
                 android:id="@+id/btnScramble"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
                 android:background="@drawable/btn_round"
                 android:textColor="#EAEAFF"
                 android:text="🔀"
-                android:textSize="17sp"
+                android:textSize="16sp"
                 android:textAllCaps="false"
                 android:paddingLeft="0dp"
                 android:paddingRight="0dp"
                 android:contentDescription="Mélanger" />
         </LinearLayout>
 
+        <!-- Ligne 3 : Réinitialiser -->
         <Button
             android:id="@+id/btnReset"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginTop="10dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
             android:background="@drawable/btn_round"
             android:textColor="#EAEAFF"
             android:text="↺"
-            android:textSize="19sp"
+            android:textSize="17sp"
             android:textAllCaps="false"
             android:paddingLeft="0dp"
             android:paddingRight="0dp"
             android:contentDescription="Réinitialiser" />
     </LinearLayout>
-
-    <!-- Indice (coûte des gemmes) -->
-    <Button
-        android:id="@+id/btnHint"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="238dp"
-        android:background="@drawable/btn_round"
-        android:textColor="#EAEAFF"
-        android:text="💡"
-        android:textSize="19sp"
-        android:textAllCaps="false"
-        android:paddingLeft="0dp"
-        android:paddingRight="0dp"
-        android:contentDescription="Indice" />
-
-    <!-- Aperçu du cube résolu (bouton œil, au-dessus des actions) -->
-    <Button
-        android:id="@+id/btnPeek"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="178dp"
-        android:background="@drawable/btn_round"
-        android:textColor="#EAEAFF"
-        android:text="👁"
-        android:textSize="19sp"
-        android:textAllCaps="false"
-        android:paddingLeft="0dp"
-        android:paddingRight="0dp"
-        android:contentDescription="Aperçu du cube résolu" />
 
     <!-- Panneau d'aperçu (les 6 faces cibles du thème) -->
     <LinearLayout
