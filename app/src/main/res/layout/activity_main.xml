@@ -174,6 +174,52 @@
             android:contentDescription="Réinitialiser" />
     </LinearLayout>
 
+    <!-- Aperçu du cube résolu (bouton œil, au-dessus des actions) -->
+    <Button
+        android:id="@+id/btnPeek"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="178dp"
+        android:background="@drawable/btn_round"
+        android:textColor="#EAEAFF"
+        android:text="👁"
+        android:textSize="19sp"
+        android:textAllCaps="false"
+        android:paddingLeft="0dp"
+        android:paddingRight="0dp"
+        android:contentDescription="Aperçu du cube résolu" />
+
+    <!-- Panneau d'aperçu (les 6 faces cibles du thème) -->
+    <LinearLayout
+        android:id="@+id/peekPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:background="@drawable/panel_bg"
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="🎯 Objectif : les 6 faces"
+            android:textColor="#5EE7FF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp" />
+
+        <ImageView
+            android:id="@+id/peekImage"
+            android:layout_width="280dp"
+            android:layout_height="187dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="Faces du thème" />
+    </LinearLayout>
+
     <!-- Animation de victoire (au-dessus de tout, cachée par défaut) -->
     <com.tiboja.cubenova.VictoryView
         android:id="@+id/victoryView"

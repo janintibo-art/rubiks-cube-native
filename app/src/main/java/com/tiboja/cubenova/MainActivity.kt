@@ -104,6 +104,30 @@ class MainActivity : Activity() {
         tip(btnScramble, "Mélanger")
         tip(btnReset, "Réinitialiser")
 
+        // Aperçu du cube résolu : maintenir 👁 affiche les 6 faces cibles
+        val peekPanel = findViewById<View>(R.id.peekPanel)
+        val peekImage = findViewById<ImageView>(R.id.peekImage)
+        findViewById<Button>(R.id.btnPeek).setOnTouchListener { v, ev ->
+            when (ev.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    try {
+                        assets.open(Themes.ATLAS[glView.renderer.currentTheme]).use {
+                            peekImage.setImageBitmap(BitmapFactory.decodeStream(it))
+                        }
+                        peekPanel.visibility = View.VISIBLE
+                    } catch (_: Exception) {}
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    peekPanel.visibility = View.GONE
+                    v.performClick()
+                    true
+                }
+                else -> true
+            }
+        }
+
         // Lancement
         if (intent.getBooleanExtra("daily", false)) {
             dailyMode = true

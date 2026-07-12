@@ -135,7 +135,9 @@ class CubeRenderer(private val context: Context) : GLSurfaceView.Renderer {
     @Volatile var maxFacesReached = 0
         private set
     fun requestReset() { resetRequested = true }
-    fun setTheme(index: Int) { pendingAtlas = Themes.ATLAS[index] }
+    fun setTheme(index: Int) { pendingAtlas = Themes.ATLAS[index]; currentTheme = index }
+    @Volatile var currentTheme: Int = Themes.DEFAULT
+        private set
     fun setSize(n: Int) { pendingSize = n; resetRequested = true }
     fun getSize(): Int = size
     fun getCell(): Float = cell

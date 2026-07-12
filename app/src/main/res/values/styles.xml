@@ -28,4 +28,9 @@
         <item name="android:paddingLeft">14dp</item>
         <item name="android:paddingRight">14dp</item>
     </style>
+
+    <!-- Écran de démarrage -->
+    <style name="SplashTheme" parent="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@drawable/splash_bg</item>
+    </style>
 </resources>
