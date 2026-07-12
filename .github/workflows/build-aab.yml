@@ -27,31 +27,32 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+          cache-disabled: true
 
       - name: Decoder le keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/cubenova.jks"
-          ls -l "$RUNNER_TEMP/cubenova.jks"
+          echo "Taille du keystore : $(stat -c%s "$RUNNER_TEMP/cubenova.jks") octets"
 
-      - name: Verifier le keystore (diagnostic)
+      - name: Verifier le keystore
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          echo "Taille du keystore : $(stat -c%s "$RUNNER_TEMP/cubenova.jks") octets (attendu ~2700)"
-          echo "Longueur du mot de passe : ${#KEYSTORE_PASSWORD} caracteres"
-          echo "Longueur de l alias : ${#KEY_ALIAS} caracteres"
-          echo "--- Contenu du keystore :"
-          keytool -list -keystore "$RUNNER_TEMP/cubenova.jks" -storepass "$KEYSTORE_PASSWORD" 2>&1 | head -20 || true
-          echo "--- Test de l alias :"
           if keytool -list -keystore "$RUNNER_TEMP/cubenova.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
             echo "OK : mot de passe et alias corrects."
           else
-            echo "ECHEC : mot de passe du keystore ou alias incorrect."
+            echo "ECHEC : mot de passe ou alias incorrect."
             exit 1
           fi
+
+      # IMPORTANT : on efface tout build precedent pour eviter un bundle non signe en cache
+      - name: Nettoyer les builds precedents
+        run: |
+          rm -rf app/build build .gradle
+          gradle clean --no-daemon --no-build-cache
 
       - name: Compiler l AAB signe
         env:
@@ -59,23 +60,28 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle bundleRelease --no-daemon
+        run: gradle bundleRelease --no-daemon --no-build-cache --rerun-tasks
 
-      - name: Verifier que l AAB est signe
+      # Vraie verification : jarsigner valide la signature
+      - name: Verifier la signature de l AAB
         run: |
           AAB=$(find app/build/outputs/bundle/release -name "*.aab" | head -n 1)
-          echo "AAB : $AAB"
-          if unzip -l "$AAB" | grep -qE "META-INF/.*\.(RSA|EC|DSA)"; then
-            echo "L AAB contient bien une signature."
+          echo "Fichier : $AAB"
+          echo "--- Contenu META-INF :"
+          unzip -l "$AAB" | grep -i "META-INF" || echo "(aucun META-INF !)"
+          echo "--- Verification jarsigner :"
+          jarsigner -verify -verbose:summary "$AAB" | tail -5
+          if jarsigner -verify "$AAB" | grep -q "jar verified"; then
+            echo "SUCCES : l AAB est correctement signe."
           else
-            echo "ATTENTION : aucune signature trouvee dans l AAB."
+            echo "ECHEC : l AAB n est PAS signe."
             exit 1
           fi
 
       - name: Publier l AAB
         uses: actions/upload-artifact@v4
         with:
-          name: cubenova-release-aab
+          name: cubenova-aab-signe
           path: app/build/outputs/bundle/release/*.aab
 
       - name: Nettoyer le keystore
