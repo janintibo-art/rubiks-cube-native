@@ -103,6 +103,43 @@ object SettingsDialog {
         paint(Music.currentTrack())
         root.addView(row)
 
+        // --- Soutenir le développeur (don facultatif, sans contrepartie) ---
+        val supportLabel = TextView(ctx).apply {
+            setTextColor(cyan); textSize = 14f
+            setPadding(0, 26, 0, 6)
+            text = "☕ Soutenir"
+        }
+        root.addView(supportLabel)
+
+        val supportText = TextView(ctx).apply {
+            setTextColor(Color.parseColor("#AFAFE0")); textSize = 12f
+            setPadding(0, 0, 0, 8)
+            text = "CubeNova est gratuit, sans publicité et sans achat. " +
+                    "Si le jeu te plaît, tu peux offrir un café au développeur. " +
+                    "C'est totalement facultatif et n'apporte aucun avantage dans le jeu."
+        }
+        root.addView(supportText)
+
+        val btnSupport = TextView(ctx).apply {
+            text = "☕  Offrir un café"
+            setTextColor(txt)
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setPadding(0, 26, 0, 26)
+            setBackgroundResource(R.drawable.btn_neon)
+            setOnClickListener {
+                try {
+                    val i = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://paypal.me/thibaultjanin")
+                    )
+                    act.startActivity(i)
+                } catch (_: Exception) {}
+            }
+        }
+        root.addView(btnSupport, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
         // Version du build (pour vérifier que l'APK installé est bien le dernier)
         val version = TextView(ctx).apply {
             setTextColor(Color.parseColor("#8888B8")); textSize = 11f
