@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.tiboja.cubenova"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.tiboja.cubenova"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 3
-        versionName = "1.3"
+        targetSdk = 36
+        versionCode = 4
+        versionName = "1.4"
     }
 
     // Signature release : activée seulement si les variables d'environnement
